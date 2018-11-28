@@ -11,13 +11,13 @@ contract Register {
     struct Platform {
         address addr;                            // 平台链上地址
         //int flag;                             // 是否加入联盟章程
-        int deviceNum;                          // 注册设备个数
+        uint deviceNum;                          // 注册设备个数
         mapping(address => Device) ownDevices;   // 平台上注册的可联动设备, key: 设备地址
     }
 
     struct Device {
         address addr;                            // 设备链上地址
-        int trustValue;                       // 信任值 (没有作用)
+        // int trustValue;                       // 信任值 (没有作用)
         mapping(string => Attribute) deviceAttr;// 设备可控制的属性, key: 属性名
     }
 
@@ -27,9 +27,9 @@ contract Register {
         //mapping(address => Platform) allowPlatforms;
     }
 
-    int platformNum;                        // 注册平台个数
+    uint platformNum;                        // 注册平台个数
     mapping(address => Platform) platInfo;     // 注册平台列表 key: 平台地址
-    int userNum;                            // 注册用户个数
+    uint userNum;                            // 注册用户个数
     mapping(address => User) usersInfo;        // 注册用户列表, key: 用户地址
 
     /* 1 注册平台 */
@@ -45,8 +45,8 @@ contract Register {
     }
 
     /* 2.1 设备向平台注册 */
-    // 参数:平台地址,设备地址,信用值
-    function devicesRegister(address platAddr, address deviceAddr, int trustValue) external returns(bool) {
+    // 参数:平台地址,设备地址
+    function devicesRegister(address platAddr, address deviceAddr) external returns(bool) {
         if(checkRegister(deviceAddr, 2, platAddr)){ // 若设备已注册,则退出
             return false;
         }
@@ -57,8 +57,7 @@ contract Register {
         Device storage device = platform.ownDevices[deviceAddr];     
         // 设置设备各属性
         platform.deviceNum++;
-        device.addr = deviceAddr;         
-        device.trustValue = trustValue;                     
+        device.addr = deviceAddr;                           
         return true;
     }
     /* 2.2 设置设备属性 */
@@ -105,7 +104,7 @@ contract Register {
     
     /* 检查注册 */
     // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
-    function checkRegister(address addr, int opCode, address platAddr) public returns(bool){
+    function checkRegister(address addr, int8 opCode, address platAddr) public returns(bool){
 
         if(0 == opCode){
             return usersInfo[addr].addr == addr;
@@ -130,9 +129,9 @@ contract TrustRule {
 
     address registerConstractAddr;                 // 注册合约地址
     address platformAddr;                          // 定义此规则的平台的地址
-    int trustDeviceNum;                           // 平台信任设备个数
+    uint trustDeviceNum;                           // 平台信任设备个数
     mapping(address => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
-    int trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
+    uint trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
 
     /* 合约执行结果的事件通知 */
     event TrustRuleEvent(bool result,string message);
@@ -152,7 +151,7 @@ contract TrustRule {
 
     /* 添加/修改/删除信任设备 */
     // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除)
-    function setDevices(address deviceAddr,int trustValue,int opCode) external returns(bool){
+    function setDevices(address deviceAddr,int trustValue,int8 opCode) external returns(bool){
 
         Device storage device = trustDevices[deviceAddr];   
         if(0 == opCode){
@@ -215,7 +214,7 @@ contract UserSceneRule {
         address deviceAddr;                                      // 控制设备地址
         address platformAddr;                                    // 控制平台地址
         address trustAddr;                                      // 受控平台信任规则合约地址
-        int attrNum;                                            // 可被控制属性总数
+        uint attrNum;                                            // 可被控制属性总数
         mapping(string => Attribute) controllAttrs;             // 可被控制属性
     }
 
@@ -223,13 +222,13 @@ contract UserSceneRule {
         address deviceAddr;                                      // 联动设备地址
         address platformAddr;                                    // 联动平台地址
         address ruleAddr;                                        // 联动规则合约地址(由联动平台定义)
-        int deviceNum;                                          // 控制的设备个数
+        uint deviceNum;                                          // 控制的设备个数
         mapping(address => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
     }
 
 
     address usrAddr;                                             // 定义此合约的用户链上地址
-    int linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
+    uint linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
     mapping(address => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
     address registerConstractAddr;                               // 注册合约地址
 
@@ -342,7 +341,7 @@ contract LinkageRule {
         address controlDeviceAddr;        //受控设备地址
         string attrType;            //受控设备属性
         string attrState;           //受控设备状态
-        int ID;                  //记录ID
+        uint ID;                  //记录ID
     }
 
     struct Attribute {
@@ -352,22 +351,22 @@ contract LinkageRule {
     struct ControlledDevice {
         address deviceAddr;                                      // 控制设备地址
         address platformAddr;                                    // 控制平台地址
-        int attrNum;                                         // 可被控制属性总数
+        uint attrNum;                                         // 可被控制属性总数
         mapping(string => Attribute) controllAttrs;             // 可被控制属性
     }
 
     struct LinkingDevice {
         address deviceAddr;                                      // 联动设备地址
         address platformAddr;                                    // 联动平台地址
-        int deviceNum;                                          // 控制的设备个数
+        uint deviceNum;                                          // 控制的设备个数
         mapping(address => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
     }
 
     address usrAddr;                                             // 定义此合约的用户链上地址
-    int linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
+    uint linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
     mapping(address => LinkingDevice) linkingRules;              // 联动规则表, key: 联动设备地址
-    int recordNums = 0;                                         // 联动记录总数
-    mapping(int => Record) linkingRecords;                   // 联动记录, key: 交易id
+    uint recordNums = 0;                                         // 联动记录总数
+    mapping(uint => Record) linkingRecords;                   // 联动记录, key: 交易id
 
     /* 设置联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性
@@ -454,7 +453,7 @@ contract LinkageRule {
 
 
     /* 查询联动控制记录 */
-    function queryRecord(int recordID) external returns(address, address, address, address, string, string, int){
+    function queryRecord(uint recordID) external returns(address, address, address, address, string, string, uint){
         Record storage record = linkingRecords[recordID];
         return (
             record.linkPlatAddr,
