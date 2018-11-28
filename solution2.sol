@@ -5,40 +5,37 @@ pragma solidity ^0.4.11;
 contract Register {
 
     struct User {
-        string addr;                        // 用户地址
+        address addr;                        // 用户地址
     }
 
     struct Platform {
-        string addr;                            // 平台链上地址
+        address addr;                            // 平台链上地址
         //int flag;                             // 是否加入联盟章程
         int deviceNum;                          // 注册设备个数
-        mapping(string => Device) ownDevices;   // 平台上注册的可联动设备, key: 设备地址
+        mapping(address => Device) ownDevices;   // 平台上注册的可联动设备, key: 设备地址
     }
 
     struct Device {
-        string addr;                            // 设备链上地址
-        int trustValue;                         // 信任值
+        address addr;                            // 设备链上地址
+        int trustValue;                       // 信任值 (没有作用)
         mapping(string => Attribute) deviceAttr;// 设备可控制的属性, key: 属性名
     }
 
     struct Attribute {
         string attrType;                    // 设备属性类型
         string attrState;                   // 设备属性状态
-        //mapping(string => Platform) allowPlatforms;
+        //mapping(address => Platform) allowPlatforms;
     }
 
     int platformNum;                        // 注册平台个数
-    mapping(string => Platform) platInfo;   // 注册平台列表
+    mapping(address => Platform) platInfo;     // 注册平台列表 key: 平台地址
     int userNum;                            // 注册用户个数
-    mapping(string => User) usersInfo;      // 注册用户列表
+    mapping(address => User) usersInfo;        // 注册用户列表, key: 用户地址
 
     /* 1 注册平台 */
     // 参数:平台地址,平台名称
-    function platformRegister(string platAddr) external returns(bool) {
-        if (bytes(platAddr).length == 0) { // 参数检测
-            return false;
-        }
-        if(checkRegister(platAddr, 1, "")){ // 若平台已注册,则退出
+    function platformRegister(address platAddr) external returns(bool) {
+        if(checkRegister(platAddr, 1, address(0))){ // 若平台已注册,则退出
             return false;
         }
         platInfo[platAddr].addr = platAddr; //平台链上地址
@@ -49,15 +46,12 @@ contract Register {
 
     /* 2.1 设备向平台注册 */
     // 参数:平台地址,设备地址,信用值
-    function devicesRegister(string platAddr, string deviceAddr, int trustValue) external returns(bool) {
-        if ((bytes(platAddr).length == 0) || (bytes(deviceAddr).length == 0) ) { // 参数检测
-            return false;
-        }
+    function devicesRegister(address platAddr, address deviceAddr, int trustValue) external returns(bool) {
         if(checkRegister(deviceAddr, 2, platAddr)){ // 若设备已注册,则退出
             return false;
         }
         Platform storage platform = platInfo[platAddr];          
-        if (bytes(platform.addr).length == 0) {// 若当前无已注册的平台,则退出
+        if (platform.addr == address(0)) {// 若当前无已注册的平台,则退出
             return false;
         }
         Device storage device = platform.ownDevices[deviceAddr];     
@@ -69,31 +63,27 @@ contract Register {
     }
     /* 2.2 设置设备属性 */
     // 参数:平台地址,设备地址,属性名称,属性类型,属性状态
-    function devicesSetAttr(string platAddr, string deviceAddr, string deviceAttr,string attrType,string attrState) external returns(bool) {
-        if ((bytes(platAddr).length == 0) || (bytes(deviceAddr).length == 0)) { // 参数检测
-            return false;
-        }
+    function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState) external returns(bool) {
+
         Platform storage platform = platInfo[platAddr];              
-        if (bytes(platform.addr).length == 0) {// 若当前无已注册的平台,则退出
+        if (platform.addr == address(0)) {// 若当前无已注册的平台,则退出
             return false;
         }
         Device storage device = platform.ownDevices[deviceAddr]; 
-        if (bytes(device.addr).length == 0) {// 若当前无已注册的设备,则退出
+        if (device.addr == address(0)) {// 若当前无已注册的设备,则退出
             return false;
         }
         // 设置设备属性        
-        device.deviceAttr[deviceAttr].attrType = attrType;
-        device.deviceAttr[deviceAttr].attrState = attrState;
+        device.deviceAttr[attrType].attrType = attrType;
+        device.deviceAttr[attrType].attrState = attrState;
         return true;
     }
 
     /* 2.3 设备向平台解注册 */
     // 参数: 平台地址,设备地址
     // TODO: 1.身份认证 2.相关联的属性删除
-    function deviceUnRegister(string platAddr, string deviceAddr) external returns(bool) {
-        if ((bytes(deviceAddr).length == 0)) { // 参数检测
-            return false;
-        }
+    function deviceUnRegister(address platAddr, address deviceAddr) external returns(bool) {
+
         Platform storage platform = platInfo[platAddr];         
         platform.deviceNum--;
         delete platform.ownDevices[deviceAddr];
@@ -102,11 +92,9 @@ contract Register {
     }
 
     /* 3 用户注册 */
-    function userRegister(string userAddr) external returns(bool) {
-        if (bytes(userAddr).length == 0 ) {
-            return false;
-        }
-        if(checkRegister(userAddr, 0, "")){ //用户已注册
+    function userRegister(address userAddr) external returns(bool) {
+
+        if(checkRegister(userAddr, 0, address(0))){ //用户已注册
             return false;
         }
         User storage user = usersInfo[userAddr];
@@ -117,16 +105,14 @@ contract Register {
     
     /* 检查注册 */
     // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
-    function checkRegister(string addr, int opCode, string platAddr) public returns(bool){
-        if (bytes(addr).length == 0) {
-            return false;
-        }
+    function checkRegister(address addr, int opCode, address platAddr) public returns(bool){
+
         if(0 == opCode){
-            return Tools.equals(usersInfo[addr].addr, addr);
+            return usersInfo[addr].addr == addr;
         }else if(1 == opCode){
-            return Tools.equals(platInfo[platAddr].ownDevices[addr].addr, addr);
+            return platInfo[platAddr].ownDevices[addr].addr == addr;
         }else if(2 == opCode){
-            return Tools.equals(platInfo[addr].addr, addr);
+            return platInfo[addr].addr == addr;
         }else{
             return false;
         }
@@ -138,14 +124,14 @@ contract Register {
 contract TrustRule {
     // 平台信任的设备
     struct Device {
-        string addr;                        // 设备链上地址
+        address addr;                        // 设备链上地址
         int trustValue;                           // 信任值
     }
 
     address registerConstractAddr;                 // 注册合约地址
     address platformAddr;                          // 定义此规则的平台的地址
     int trustDeviceNum;                           // 平台信任设备个数
-    mapping(string => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
+    mapping(address => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
     int trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
 
     /* 合约执行结果的事件通知 */
@@ -166,10 +152,8 @@ contract TrustRule {
 
     /* 添加/修改/删除信任设备 */
     // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除)
-    function setDevices(string deviceAddr,int trustValue,int opCode) external returns(bool){
-        if (bytes(deviceAddr).length == 0 ) { // 参数检查
-            return false;
-        }
+    function setDevices(address deviceAddr,int trustValue,int opCode) external returns(bool){
+
         Device storage device = trustDevices[deviceAddr];   
         if(0 == opCode){
             device.addr = deviceAddr;
@@ -188,13 +172,10 @@ contract TrustRule {
 
     /* 信任规则函数 */
     // 参数: 平台地址, 设备地址
-    function trustRuleJudge(string platAddr, string deviceAddr) public returns(bool) {
-        if (bytes(platAddr).length == 0 || bytes(deviceAddr).length == 0) {
-            return false;
-        }
+    function trustRuleJudge(address platAddr, address deviceAddr) public returns(bool) {
 
         // 调用注册合约，查询平台是否注册，设备是否在平台注册
-        if(!Register(registerConstractAddr).checkRegister(platAddr,1,"") ||
+        if(!Register(registerConstractAddr).checkRegister(platAddr,1,address(0)) ||
             !Register(registerConstractAddr).checkRegister(platAddr,2,deviceAddr)){
             return false;
         }
@@ -208,13 +189,13 @@ contract TrustRule {
 
     UserSceneRule userScene;
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
-    // 用户参数输入:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,用户规则合约
-    function startLinking(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType, string attrState, address userRuleAddr) 
+    // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
+    function startLinking(address[4] addr4, string attrType, string attrState, address userRuleAddr) 
         external{
-        if(trustRuleJudge(lPAddr,lDAddr)){// 调用信任值判断
+        if(trustRuleJudge(addr4[0],addr4[1])){// 调用信任值判断
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userRuleAddr);
-            bool result = userScene.userSceneRule(lPAddr, lDAddr, cPAddr, cDAddr, attrType, attrState);
+            bool result = userScene.userSceneRule(addr4, attrType, attrState);
             emit TrustRuleEvent(result,"调用成功");
         }else{
             emit TrustRuleEvent(false,"信任值不够");
@@ -231,25 +212,25 @@ contract UserSceneRule {
     }
 
     struct ControlledDevice {
-        string deviceAddr;                                      // 控制设备地址
-        string platformAddr;                                    // 控制平台地址
+        address deviceAddr;                                      // 控制设备地址
+        address platformAddr;                                    // 控制平台地址
         address trustAddr;                                      // 受控平台信任规则合约地址
         int attrNum;                                            // 可被控制属性总数
         mapping(string => Attribute) controllAttrs;             // 可被控制属性
     }
 
     struct LinkingDevice {
-        string deviceAddr;                                      // 联动设备地址
-        string platformAddr;                                    // 联动平台地址
+        address deviceAddr;                                      // 联动设备地址
+        address platformAddr;                                    // 联动平台地址
         address ruleAddr;                                        // 联动规则合约地址(由联动平台定义)
         int deviceNum;                                          // 控制的设备个数
-        mapping(string => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
+        mapping(address => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
     }
 
 
     address usrAddr;                                             // 定义此合约的用户链上地址
     int linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
-    mapping(string => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
+    mapping(address => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
     address registerConstractAddr;                               // 注册合约地址
 
     /* 构造函数 */
@@ -260,18 +241,18 @@ contract UserSceneRule {
 
     /* 添加用户场景 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,联动规则合约地址,受控信任规则合约地址
-    function addUserSceneRule(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType, address ruleAddr, address trustAddr) 
+    function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr) 
         external returns(bool) {
         //参数检查
-        LinkingDevice storage linkingDevice = userRules[lDAddr];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[cDAddr];
+        LinkingDevice storage linkingDevice = userRules[addr4[1]];
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        linkingDevice.deviceAddr = lPAddr;
-        linkingDevice.platformAddr = lDAddr;
+        linkingDevice.platformAddr = addr4[0];
+        linkingDevice.deviceAddr = addr4[1];
         linkingDevice.ruleAddr = ruleAddr;
         linkingDevice.deviceNum++;
-        controlledDevice.deviceAddr = cDAddr;
-        controlledDevice.platformAddr = cPAddr;
+        controlledDevice.platformAddr = addr4[2];
+        controlledDevice.deviceAddr = addr4[3];
         controlledDevice.trustAddr = trustAddr;
         controlledDevice.attrNum++;
         attribute.deviceType = attrType;
@@ -282,23 +263,23 @@ contract UserSceneRule {
     /* 查询用户规则是否正确 */
     // 如果正确则返回联动规则合约地址和信任规则合约地址
     // 参数: 联动表编号
-    function checkUserSceneRule(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType) 
+    function checkUserSceneRule(address[4] addr4, string attrType) 
         public returns(bool){
-        LinkingDevice storage linkingDevice = userRules[lDAddr];
-        if (bytes(linkingDevice.deviceAddr).length == 0 || Tools.equals(linkingDevice.deviceAddr, lDAddr)){
+        LinkingDevice storage linkingDevice = userRules[addr4[1]];
+        if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
             // 联动设备不存在
             return false;
         }
-        if (Tools.equals(linkingDevice.platformAddr, lPAddr)){
+        if (linkingDevice.platformAddr == addr4[0]){
             // 联动平台不匹配
             return false;
         }
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[cDAddr];
-        if (bytes(controlledDevice.deviceAddr).length == 0 || Tools.equals(controlledDevice.deviceAddr, cDAddr)){
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
+        if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr == addr4[3]){
             // 受控设备不存在
             return false;
         }
-        if (Tools.equals(controlledDevice.platformAddr, cPAddr)){
+        if (controlledDevice.platformAddr == addr4[2]){
             // 受控平台不匹配
             return false;
         }
@@ -318,47 +299,34 @@ contract UserSceneRule {
     LinkageRule linkage;
     /* 执行用户场景规则 */
     // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
-    function userSceneRule(string lPAddr, string lDAddr, string cPAddr, string cDAddr, string attrType, string attrState)
+    function userSceneRule(address[4] addr4, string attrType, string attrState)
         external returns(bool) {
         // 调用注册合约，查询受控平台和设备是否注册
-        if(!checker(lPAddr, lDAddr, cPAddr, cDAddr)){
+        if(!checker(addr4)){
             return false;
         }
         // 检查用户规则
-        if(!checkUserSceneRule(lPAddr, lDAddr, cPAddr, cDAddr, attrType)){
+        if(!checkUserSceneRule(addr4, attrType)){
             return false;
         }
         // 调用联动规则合约
-        doLinkageRule(lPAddr, lDAddr, cPAddr, cDAddr, attrType,attrState);
+        LinkingDevice storage linkingDevice = userRules[addr4[1]];
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
+        
+        linkage = LinkageRule(linkingDevice.ruleAddr);
+        bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr);       
         return true;
     }
     
     /* 检测平台和设备注册 */
-    function checker(string lPAddr, string lDAddr, string cPAddr, string cDAddr) internal returns(bool){
-        if(Register(registerConstractAddr).checkRegister(lPAddr,1,"") 
-            && Register(registerConstractAddr).checkRegister(lPAddr,2,lDAddr) 
-            && Register(registerConstractAddr).checkRegister(cPAddr,1,"") 
-            && Register(registerConstractAddr).checkRegister(cPAddr,2,cDAddr)){
+    function checker(address[4] addr4) internal returns(bool){
+        if(Register(registerConstractAddr).checkRegister(addr4[0],1,address(0)) 
+            && Register(registerConstractAddr).checkRegister(addr4[0],2,addr4[1]) 
+            && Register(registerConstractAddr).checkRegister(addr4[2],1,address(0)) 
+            && Register(registerConstractAddr).checkRegister(addr4[2],2,addr4[3])){
             return true;
         }
         return false;
-    }
-
-    /* 获取联动规则和信任规则合约 */
-    function getRule(string lDAddr,string cDAddr) internal returns(address, address){
-        LinkingDevice storage linkingDevice = userRules[lDAddr];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[cDAddr];
-        return (linkingDevice.ruleAddr,controlledDevice.trustAddr);
-    }
-
-    function doLinkageRule(string lPAddr, string lDAddr, string cPAddr, string cDAddr, string attrType, string attrState) internal returns(bool){
-        // 获取合约地址
-        address ruleAddr; // 获取联动规则合约地址
-        address trustAddr; // 获取信任规则合约地址
-        (ruleAddr,trustAddr) = getRule(lDAddr,cPAddr);
-        
-        linkage = LinkageRule(ruleAddr);
-        bool result = linkage.linkageRule(lPAddr, lDAddr, cPAddr, cDAddr, attrType, attrState, trustAddr);        
     }
 }
 
@@ -368,10 +336,10 @@ contract LinkageRule {
 
     // 联动控制记录
     struct Record{
-        string fromPlatAddr;        //联动方平台地址
-        string fromDeviceAddr;      //联动设备地址
-        string toPlatAddr;          //受控平台地址
-        string toDeviceAddr;        //受控设备地址
+        address linkPlatAddr;        //联动方平台地址
+        address linkDeviceAddr;      //联动设备地址
+        address controlPlatAddr;          //受控平台地址
+        address controlDeviceAddr;        //受控设备地址
         string attrType;            //受控设备属性
         string attrState;           //受控设备状态
         int ID;                  //记录ID
@@ -382,37 +350,37 @@ contract LinkageRule {
     }
 
     struct ControlledDevice {
-        string deviceAddr;                                      // 控制设备地址
-        string platformAddr;                                    // 控制平台地址
+        address deviceAddr;                                      // 控制设备地址
+        address platformAddr;                                    // 控制平台地址
         int attrNum;                                         // 可被控制属性总数
         mapping(string => Attribute) controllAttrs;             // 可被控制属性
     }
 
     struct LinkingDevice {
-        string deviceAddr;                                      // 联动设备地址
-        string platformAddr;                                    // 联动平台地址
+        address deviceAddr;                                      // 联动设备地址
+        address platformAddr;                                    // 联动平台地址
         int deviceNum;                                          // 控制的设备个数
-        mapping(string => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
+        mapping(address => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
     }
 
-    string usrAddr;                                             // 定义此合约的用户链上地址
+    address usrAddr;                                             // 定义此合约的用户链上地址
     int linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
-    mapping(string => LinkingDevice) linkingRules;              // 联动规则表, key: 联动设备地址
+    mapping(address => LinkingDevice) linkingRules;              // 联动规则表, key: 联动设备地址
     int recordNums = 0;                                         // 联动记录总数
     mapping(int => Record) linkingRecords;                   // 联动记录, key: 交易id
 
     /* 设置联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性
-    function addLinkageRule(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType) 
+    function addLinkageRule(address[4] addr4, string attrType) 
         external returns(bool) {
-        LinkingDevice storage linkingDevice = linkingRules[lDAddr];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[cDAddr];
+        LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        linkingDevice.deviceAddr = lPAddr;
-        linkingDevice.platformAddr = lDAddr;
+        linkingDevice.deviceAddr = addr4[0];
+        linkingDevice.platformAddr = addr4[1];
         linkingDevice.deviceNum++;
-        controlledDevice.deviceAddr = cDAddr;
-        controlledDevice.platformAddr = cPAddr;
+        controlledDevice.deviceAddr = addr4[3];
+        controlledDevice.platformAddr = addr4[2];
         attribute.deviceType = attrType;
         controlledDevice.attrNum++;
         linkingNums++;
@@ -420,28 +388,28 @@ contract LinkageRule {
     }
 
     /* 查询联动规则是否正确 */
-    // 参数: 联动表编号
-    function checkLinkageRule(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType) public returns(bool){
-        LinkingDevice storage linkingDevice = linkingRules[lDAddr];
-        if (bytes(linkingDevice.deviceAddr).length == 0 || Tools.equals(linkingDevice.deviceAddr, lDAddr)){
+    // 参数: 
+    function checkLinkageRule(address[4] addr4, string attrType) public returns(bool){
+        LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
+        if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
             // 联动设备不存在
             return false;
         }
-        if (Tools.equals(linkingDevice.platformAddr, lPAddr)){
+        if (linkingDevice.platformAddr == addr4[0]){
             // 联动平台不匹配
             return false;
         }
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[cDAddr];
-        if (bytes(controlledDevice.deviceAddr).length == 0 || Tools.equals(controlledDevice.deviceAddr, cDAddr)){
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
+        if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr == addr4[3]){
             // 受控设备不存在
             return false;
         }
-        if ( Tools.equals(controlledDevice.platformAddr, cPAddr)){
+        if (controlledDevice.platformAddr == addr4[2]){
             // 受控平台不匹配
             return false;
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        if (bytes(attribute.deviceType).length == 0 || Tools.equals(attribute.deviceType, attrType)){
+        if (bytes(attribute.deviceType).length == 0  || Tools.equals(attribute.deviceType, attrType)){
             // 受控属性不存在
             return false;
         }
@@ -451,32 +419,32 @@ contract LinkageRule {
     TrustRule trustRule;
     /* 执行联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,信任规则合约地址
-    function linkageRule(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType, string attrState, address trustAddr)
+    function linkageRule(address[4] addr4, string attrType, string attrState, address trustAddr)
         external returns(bool) {
         // 查询联动规则是否匹配
-        if(!checkLinkageRule(lPAddr, lDAddr, cPAddr, cDAddr, attrType)){
+        if(!checkLinkageRule(addr4, attrType)){
             return false;
         }
 
         // 调用受控平台信任规则,检查是否能够联动
         trustRule = TrustRule(trustAddr);
-        bool result = trustRule.trustRuleJudge(cPAddr,cDAddr);
+        bool result = trustRule.trustRuleJudge(addr4[2],addr4[3]);
         if(!result){
             return false;
         }
 
         // 联动方的联动规则执行,记录联动结果
-        recordLink(lPAddr, lDAddr, cPAddr, cDAddr, attrType, attrState);
+        recordLink(addr4, attrType, attrState);
         return true;
     }
 
     /* 记录联动控制 */
-    function recordLink(string lPAddr, string lDAddr, string cPAddr,string cDAddr, string attrType, string attrState) internal returns(bool){
+    function recordLink(address[4] addr4, string attrType, string attrState) internal returns(bool){
         Record storage record = linkingRecords[recordNums];
-        record.fromPlatAddr = lPAddr;
-        record.fromDeviceAddr = lDAddr;
-        record.toPlatAddr = cPAddr; 
-        record.toDeviceAddr = cDAddr;
+        record.linkPlatAddr = addr4[0];
+        record.linkDeviceAddr = addr4[1];
+        record.controlPlatAddr = addr4[2]; 
+        record.controlDeviceAddr = addr4[3];
         record.attrType = attrType; 
         record.attrState = attrState;
         record.ID = recordNums;
@@ -486,13 +454,13 @@ contract LinkageRule {
 
 
     /* 查询联动控制记录 */
-    function queryRecord(int recordID) external returns(string, string, string,string, string, string, int){
+    function queryRecord(int recordID) external returns(address, address, address, address, string, string, int){
         Record storage record = linkingRecords[recordID];
         return (
-            record.fromPlatAddr,
-            record.fromDeviceAddr,
-            record.toPlatAddr, 
-            record.toDeviceAddr,
+            record.linkPlatAddr,
+            record.linkDeviceAddr,
+            record.controlPlatAddr, 
+            record.controlDeviceAddr,
             record.attrType,           
             record.attrState, 
             record.ID
