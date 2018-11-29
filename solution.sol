@@ -104,7 +104,7 @@ contract Register {
     
     /* 检查注册 */
     // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
-    function checkRegister(address addr, int8 opCode, address platAddr) public returns(bool){
+    function checkRegister(address addr, uint8 opCode, address platAddr) public returns(bool){
 
         if(uint8(0) == opCode){
             return usersInfo[addr].addr == addr;
@@ -151,7 +151,7 @@ contract TrustRule {
 
     /* 添加/修改/删除信任设备 */
     // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除)
-    function setDevices(address deviceAddr,int trustValue,int8 opCode) external returns(bool){
+    function setDevices(address deviceAddr,int trustValue,uint8 opCode) external returns(bool){
 
         Device storage device = trustDevices[deviceAddr];   
         if(uint8(0) == opCode){
