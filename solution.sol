@@ -106,11 +106,11 @@ contract Register {
     // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
     function checkRegister(address addr, int8 opCode, address platAddr) public returns(bool){
 
-        if(0 == opCode){
+        if(uint8(0) == opCode){
             return usersInfo[addr].addr == addr;
-        }else if(1 == opCode){
+        }else if(uint8(1) == opCode){
             return platInfo[platAddr].ownDevices[addr].addr == addr;
-        }else if(2 == opCode){
+        }else if(uint8(2) == opCode){
             return platInfo[addr].addr == addr;
         }else{
             return false;
@@ -131,7 +131,7 @@ contract TrustRule {
     address platformAddr;                          // 定义此规则的平台的地址
     uint trustDeviceNum;                           // 平台信任设备个数
     mapping(address => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
-    uint trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
+    int trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
 
     /* 合约执行结果的事件通知 */
     event TrustRuleEvent(bool result,string message);
@@ -154,14 +154,14 @@ contract TrustRule {
     function setDevices(address deviceAddr,int trustValue,int8 opCode) external returns(bool){
 
         Device storage device = trustDevices[deviceAddr];   
-        if(0 == opCode){
+        if(uint8(0) == opCode){
             device.addr = deviceAddr;
             device.trustValue = trustValue;
             trustDeviceNum++;
-        }else if(1 == opCode){
+        }else if(uint8(1) == opCode){
             device.addr = deviceAddr;
             device.trustValue = trustValue;
-        }else if(2 == opCode){
+        }else if(uint8(2) == opCode){
             delete trustDevices[deviceAddr];
         }else{
             return false; // 未知操作符
