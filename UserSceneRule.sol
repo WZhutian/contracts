@@ -1,5 +1,6 @@
 pragma solidity ^0.4.11;
 import "./LinkageRule.sol";
+import "./Register.sol";
 import "./Tools.sol";
 /* 用户场景规则合约 —— 用户通过平台定义，与用户一一对应 */
 // 用户定义
