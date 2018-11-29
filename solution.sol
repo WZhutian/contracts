@@ -195,9 +195,9 @@ contract TrustRule {
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userRuleAddr);
             bool result = userScene.userSceneRule(addr4, attrType, attrState);
-            emit TrustRuleEvent(result,"调用成功");
+            TrustRuleEvent(result,"调用成功");
         }else{
-            emit TrustRuleEvent(false,"信任值不够");
+            TrustRuleEvent(false,"信任值不够");
         }
     }
 }
