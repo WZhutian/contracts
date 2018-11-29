@@ -314,6 +314,9 @@ contract UserSceneRule {
         
         linkage = LinkageRule(linkingDevice.ruleAddr);
         bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr);       
+        if(!result){
+            return false;
+        }
         return true;
     }
     
