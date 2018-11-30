@@ -61,7 +61,7 @@ contract LinkageRule {
 
     /* 查询联动规则是否正确 */
     // 参数: 
-    function checkLinkageRule(address[4] addr4, string attrType) public returns(bool){
+    function checkLinkageRule(address[4] addr4, string attrType) constant public returns(bool){
         LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
         if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
             // 联动设备不存在
@@ -126,7 +126,7 @@ contract LinkageRule {
 
 
     /* 查询联动控制记录 */
-    function queryRecord(uint recordID) external returns(address, address, address, address, string, string, uint){
+    function queryRecord(uint recordID) constant external returns(address, address, address, address, string, string, uint){
         Record storage record = linkingRecords[recordID];
         return (
             record.linkPlatAddr,

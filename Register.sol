@@ -32,6 +32,13 @@ contract Register {
     uint userNum;                            // 注册用户个数
     mapping(address => User) usersInfo;        // 注册用户列表, key: 用户地址
 
+    /* 事件响应 */
+    event platformRegisterEvent(address platAddr);
+    event devicesRegisterEvent();
+    event devicesSetAttrEvent();
+    event deviceUnRegisterEvent();
+    event userRegisterEvent();
+
     /* 1 注册平台 */
     // 参数:平台地址,平台名称
     function platformRegister(address platAddr) external returns(bool) {
@@ -41,6 +48,7 @@ contract Register {
         platInfo[platAddr].addr = platAddr; //平台链上地址
         platInfo[platAddr].deviceNum = 0;       //初始化设备个数
         platformNum++;
+        platformRegisterEvent(platAddr);
         return true;
     }
 
@@ -104,7 +112,7 @@ contract Register {
     
     /* 检查注册 */
     // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
-    function checkRegister(address addr, uint8 opCode, address platAddr) public returns(bool){
+    function checkRegister(address addr, uint8 opCode, address platAddr) constant public returns(bool){
 
         if(uint8(0) == opCode){
             return usersInfo[addr].addr == addr;

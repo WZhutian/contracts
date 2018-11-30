@@ -62,8 +62,7 @@ contract UserSceneRule {
     /* 查询用户规则是否正确 */
     // 如果正确则返回联动规则合约地址和信任规则合约地址
     // 参数: 联动表编号
-    function checkUserSceneRule(address[4] addr4, string attrType) 
-        public returns(bool){
+    function checkUserSceneRule(address[4] addr4, string attrType) constant public returns(bool){
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
         if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
             // 联动设备不存在
