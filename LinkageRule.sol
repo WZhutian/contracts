@@ -58,7 +58,7 @@ contract LinkageRule {
     function addLinkageRule(address[4] addr4, string attrType) 
         external returns(bool) {
         // 平台与设备是否注册
-        if(checker(addr4)){
+        if(!checker(addr4)){
             addLinkageRuleEvent(msg.sender, false, "添加用户场景失败,平台或设备未注册");
             return false;
         }
