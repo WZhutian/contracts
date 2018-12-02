@@ -79,6 +79,13 @@ contract TrustRule {
         }
         return (false,"未达到平台阈值");
     }
+    // 信任规则包装函数  一般调用时使用
+    function trustRuleJudgePackage(address platAddr, address deviceAddr) constant public returns(bool, string) {
+        bool judgeResult;
+        bytes32 judgeMessage;
+        (judgeResult,judgeMessage) = trustRuleJudge(platAddr,deviceAddr);
+        return (judgeResult, bytes32ToString(judgeMessage));
+    }
 
     UserSceneRule userScene;
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
@@ -86,19 +93,19 @@ contract TrustRule {
     function startLinking(address[4] addr4, string attrType, string attrState, address userRuleAddr) 
         external{
         bool judgeResult;
-        bytes32 judgeMessage;
-        (judgeResult,judgeMessage) = trustRuleJudge(addr4[0],addr4[1]);
+        string memory judgeMessage;
+        (judgeResult,judgeMessage) = trustRuleJudgePackage(addr4[0],addr4[1]);
         if(judgeResult){// 调用信任值判断
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userRuleAddr);
             bool result = userScene.userSceneRule(addr4, attrType, attrState);
             TrustRuleEvent(msg.sender, result, "调用成功");
         }else{
-            TrustRuleEvent(msg.sender, false, bytes32ToString(judgeMessage));
+            TrustRuleEvent(msg.sender, false, judgeMessage);
         }
     }
     
-    /* 临时方法 */
+    /* 转换方法 */
     function bytes32ToString(bytes32 x) constant private returns (string) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
