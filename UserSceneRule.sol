@@ -52,16 +52,16 @@ contract UserSceneRule {
             return false;
         }
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
-        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         linkingDevice.platformAddr = addr4[0];
         linkingDevice.deviceAddr = addr4[1];
         linkingDevice.ruleAddr = ruleAddr;
         linkingDevice.deviceNum++;
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         controlledDevice.platformAddr = addr4[2];
         controlledDevice.deviceAddr = addr4[3];
         controlledDevice.trustAddr = trustAddr;
         controlledDevice.attrNum++;
+        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         attribute.deviceType = attrType;
         linkingNums++;
         addUserSceneRuleEvent(msg.sender, true, "添加用户场景成功");

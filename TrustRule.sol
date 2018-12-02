@@ -1,5 +1,6 @@
 pragma solidity ^0.4.11;
 import "./UserSceneRule.sol";
+import "./Tools.sol";
 
 /* 信任规则合约 —— 与平台一一对应 */
 contract TrustRule {
@@ -42,34 +43,41 @@ contract TrustRule {
             device.addr = deviceAddr;
             device.trustValue = trustValue;
             trustDeviceNum++;
+            setDevicesEvent(msg.sender,true,"添加成功");
         }else if(uint8(1) == opCode){
             device.addr = deviceAddr;
             device.trustValue = trustValue;
+            setDevicesEvent(msg.sender,true,"修改成功");
         }else if(uint8(2) == opCode){
             delete trustDevices[deviceAddr];
+            setDevicesEvent(msg.sender,true,"删除成功");
         }else{
             setDevicesEvent(msg.sender,false,"未知操作符");
             return false; // 未知操作符
         }
-        setDevicesEvent(msg.sender,true,"操作成功");
         return true;
     }
 
     /* 信任规则函数 */
-    // 参数: 平台地址, 设备地址
-    function trustRuleJudge(address platAddr, address deviceAddr) constant public returns(bool) {
+    // 参数: 平台地址, 设备地址 (由于需要跨合约调用,使用bytes32)
+    function trustRuleJudge(address platAddr, address deviceAddr) constant public returns(bool, bytes32) {
 
         // 调用注册合约，查询平台是否注册，设备是否在平台注册
-        if(!Register(registerConstractAddr).checkPlatformRegister(platAddr) ||
-            !Register(registerConstractAddr).checkDeviceRegister(platAddr,deviceAddr)){
-            return false;
+        if(!Register(registerConstractAddr).checkPlatformRegister(platAddr)){
+            return (false,"平台未注册");
+        }
+        if(!Register(registerConstractAddr).checkDeviceRegister(platAddr,deviceAddr)){
+            return (false,"设备未注册");
         }
 
         // 获取信任合约自己的数据库入口
         Device storage device = trustDevices[deviceAddr];
 
         // 判断设备的信任值，是否大于平台在合约端预设的阈值
-        return device.trustValue >= trustThreshold;     
+        if((device.trustValue >= trustThreshold)){
+            return (true,"设备可信任");
+        }
+        return (false,"未达到平台阈值");
     }
 
     UserSceneRule userScene;
@@ -77,13 +85,28 @@ contract TrustRule {
     // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
     function startLinking(address[4] addr4, string attrType, string attrState, address userRuleAddr) 
         external{
-        if(trustRuleJudge(addr4[0],addr4[1])){// 调用信任值判断
+        bool judgeResult;
+        bytes32 judgeMessage;
+        (judgeResult,judgeMessage) = trustRuleJudge(addr4[0],addr4[1]);
+        if(judgeResult){// 调用信任值判断
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userRuleAddr);
             bool result = userScene.userSceneRule(addr4, attrType, attrState);
             TrustRuleEvent(msg.sender, result, "调用成功");
         }else{
-            TrustRuleEvent(msg.sender, false, "信任值不够");
+            TrustRuleEvent(msg.sender, false, bytes32ToStr(judgeMessage));
         }
+    }
+    
+    /* 临时方法 */
+    function bytes32ToStr(bytes32 _bytes32) private constant returns (string){
+    // string memory str = string(_bytes32);
+    // TypeError: Explicit type conversion not allowed from "bytes32" to "string storage pointer"
+    // thus we should fist convert bytes32 to bytes (to dynamically-sized byte array)
+        bytes memory bytesArray = new bytes(32);
+        for (uint256 i; i < 32; i++) {
+            bytesArray[i] = _bytes32[i];
+        }
+        return string(bytesArray);
     }
 }

@@ -63,15 +63,15 @@ contract LinkageRule {
             return false;
         }
         LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
-        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         linkingDevice.deviceAddr = addr4[0];
         linkingDevice.platformAddr = addr4[1];
         linkingDevice.deviceNum++;
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         controlledDevice.deviceAddr = addr4[3];
         controlledDevice.platformAddr = addr4[2];
-        attribute.deviceType = attrType;
         controlledDevice.attrNum++;
+        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
+        attribute.deviceType = attrType;
         linkingNums++;
         addLinkageRuleEvent(msg.sender, true, "添加联动规则成功");
         return true;
@@ -110,7 +110,7 @@ contract LinkageRule {
             
         // 调用注册合约，查询受控平台和设备是否注册
         if(!checker(addr4)){
-            linkageRuleEvent(msg.sender, false, "受控平台和设备未注册");
+            linkageRuleEvent(msg.sender, false, "受控平台或设备未注册");
             return false;
         }
         // 查询联动规则是否匹配
@@ -124,9 +124,11 @@ contract LinkageRule {
 
         // 调用受控平台信任规则,检查是否能够联动
         trustRule = TrustRule(trustAddr);
-        bool result = trustRule.trustRuleJudge(addr4[2],addr4[3]);
-        if(!result){
-            linkageRuleEvent(msg.sender, false, "未达到受控平台信任值");
+        bool judgeResult;
+        bytes32 judgeMessage;
+        (judgeResult,judgeMessage) = trustRule.trustRuleJudge(addr4[2],addr4[3]);
+        if(!judgeResult){
+            linkageRuleEvent(msg.sender, false, bytes32ToStr(judgeMessage));
             return false;
         }
 
@@ -161,7 +163,6 @@ contract LinkageRule {
         return true;
     }
 
-
     /* 查询联动控制记录 */
     function queryRecord(uint recordID) constant external returns(address, address, address, address, string, string, uint){
         Record storage record = linkingRecords[recordID];
@@ -174,5 +175,17 @@ contract LinkageRule {
             record.attrState, 
             record.ID
         );
+    }
+
+    /* 临时方法 */
+    function bytes32ToStr(bytes32 _bytes32) private constant returns (string){
+    // string memory str = string(_bytes32);
+    // TypeError: Explicit type conversion not allowed from "bytes32" to "string storage pointer"
+    // thus we should fist convert bytes32 to bytes (to dynamically-sized byte array)
+        bytes memory bytesArray = new bytes(32);
+        for (uint256 i; i < 32; i++) {
+            bytesArray[i] = _bytes32[i];
+        }
+        return string(bytesArray);
     }
 }
