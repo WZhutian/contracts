@@ -73,7 +73,23 @@ contract UserSceneRule {
     // 参数: 联动表编号
     function checkUserSceneRule(address[4] addr4, string attrType) constant public returns(bool,string){
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
-
+        if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr != addr4[1]){
+            return (false,"联动设备不存在");
+        }
+        if (linkingDevice.platformAddr != addr4[0]){
+            return (false,"联动平台不匹配");
+        }
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
+        if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr != addr4[3]){
+            return (false,"受控设备不存在");
+        }
+        if (controlledDevice.platformAddr != addr4[2]){
+            return (false,"受控平台不匹配");
+        }
+        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
+        if (bytes(attribute.deviceType).length == 0 || !Tools.equals(attribute.deviceType, attrType)){
+            return (false,"受控属性不存在");
+        }
         return (true,"正确");
     }
 
