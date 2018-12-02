@@ -81,21 +81,21 @@ contract LinkageRule {
     // 参数: 
     function checkLinkageRule(address[4] addr4, string attrType) constant public returns(bool,string){
         LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
-        if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
+        if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr != addr4[1]){
             return (false,"联动设备不存在");
         }
-        if (linkingDevice.platformAddr == addr4[0]){
+        if (linkingDevice.platformAddr != addr4[0]){
             return (false,"联动平台不匹配");
         }
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
-        if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr == addr4[3]){
+        if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr != addr4[3]){
             return (false,"受控设备不存在");
         }
-        if (controlledDevice.platformAddr == addr4[2]){
+        if (controlledDevice.platformAddr != addr4[2]){
             return (false,"受控平台不匹配");
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        if (bytes(attribute.deviceType).length == 0 || Tools.equals(attribute.deviceType, attrType)){
+        if (bytes(attribute.deviceType).length == 0 || !Tools.equals(attribute.deviceType, attrType)){
             return (false,"受控属性不存在");
         }
         return (true,"正确");
@@ -128,7 +128,7 @@ contract LinkageRule {
         bytes32 judgeMessage;
         (judgeResult,judgeMessage) = trustRule.trustRuleJudge(addr4[2],addr4[3]);
         if(!judgeResult){
-            linkageRuleEvent(msg.sender, false, bytes32ToStr(judgeMessage));
+            linkageRuleEvent(msg.sender, false, bytes32ToString(judgeMessage));
             return false;
         }
 
@@ -178,14 +178,20 @@ contract LinkageRule {
     }
 
     /* 临时方法 */
-    function bytes32ToStr(bytes32 _bytes32) private constant returns (string){
-    // string memory str = string(_bytes32);
-    // TypeError: Explicit type conversion not allowed from "bytes32" to "string storage pointer"
-    // thus we should fist convert bytes32 to bytes (to dynamically-sized byte array)
-        bytes memory bytesArray = new bytes(32);
-        for (uint256 i; i < 32; i++) {
-            bytesArray[i] = _bytes32[i];
+    function bytes32ToString(bytes32 x) constant private returns (string) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
         }
-        return string(bytesArray);
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
     }
 }

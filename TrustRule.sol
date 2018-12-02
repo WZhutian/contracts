@@ -94,19 +94,25 @@ contract TrustRule {
             bool result = userScene.userSceneRule(addr4, attrType, attrState);
             TrustRuleEvent(msg.sender, result, "调用成功");
         }else{
-            TrustRuleEvent(msg.sender, false, bytes32ToStr(judgeMessage));
+            TrustRuleEvent(msg.sender, false, bytes32ToString(judgeMessage));
         }
     }
     
     /* 临时方法 */
-    function bytes32ToStr(bytes32 _bytes32) private constant returns (string){
-    // string memory str = string(_bytes32);
-    // TypeError: Explicit type conversion not allowed from "bytes32" to "string storage pointer"
-    // thus we should fist convert bytes32 to bytes (to dynamically-sized byte array)
-        bytes memory bytesArray = new bytes(32);
-        for (uint256 i; i < 32; i++) {
-            bytesArray[i] = _bytes32[i];
+    function bytes32ToString(bytes32 x) constant private returns (string) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
         }
-        return string(bytesArray);
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
     }
 }
