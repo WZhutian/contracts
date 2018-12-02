@@ -56,7 +56,7 @@ contract Register {
     /* 2.1 设备向平台注册 */
     // 参数:平台地址,设备地址
     function devicesRegister(address platAddr, address deviceAddr) external returns(bool){
-        if(checkDeviceRegister(deviceAddr, platAddr)){ // 若设备已注册,则退出
+        if(checkDeviceRegister(platAddr, deviceAddr)){ // 若设备已注册,则退出
             devicesRegisterEvent(msg.sender, false, "设备已注册");
             return false;
         }
@@ -121,7 +121,7 @@ contract Register {
     function checkUserRegister(address addr) constant public returns(bool){
         return usersInfo[addr].addr == addr;
     }
-    function checkDeviceRegister(address addr, address platAddr) constant public returns(bool){
+    function checkDeviceRegister(address platAddr,address addr) constant public returns(bool){
         return platInfo[platAddr].ownDevices[addr].addr == addr;
     }
     function checkPlatformRegister(address addr) constant public returns(bool){
