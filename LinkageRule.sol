@@ -40,7 +40,7 @@ contract LinkageRule {
     mapping(address => LinkingDevice) linkingRules;              // 联动规则表, key: 联动设备地址
     uint recordNums = 0;                                         // 联动记录总数
     mapping(uint => Record) linkingRecords;                   // 联动记录, key: 交易id
-    address registerConstractAddr;                               // 注册合约地址
+    address registerConstractAddr;                               // 注册合约地址 
 
     /* 事件响应 */
     event addLinkageRuleEvent(address sender, bool result, string message);
