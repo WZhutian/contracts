@@ -63,12 +63,12 @@ contract LinkageRule {
             return false;
         }
         LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
-        linkingDevice.deviceAddr = addr4[0];
-        linkingDevice.platformAddr = addr4[1];
+        linkingDevice.platformAddr = addr4[0];
+        linkingDevice.deviceAddr = addr4[1];
         linkingDevice.deviceNum++;
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
-        controlledDevice.deviceAddr = addr4[3];
         controlledDevice.platformAddr = addr4[2];
+        controlledDevice.deviceAddr = addr4[3];
         controlledDevice.attrNum++;
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         attribute.deviceType = attrType;
