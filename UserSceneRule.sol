@@ -32,6 +32,10 @@ contract UserSceneRule {
     mapping(address => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
     address registerConstractAddr;                               // 注册合约地址
 
+    /* 事件响应 */
+    event addUserSceneRuleEvent(address sender, bool result, string message);
+    event userSceneRuleEvent(address sender, bool result, string message);
+
     /* 构造函数 */
     function UserSceneRule(address consAddr) public{
         usrAddr = msg.sender;
@@ -42,7 +46,11 @@ contract UserSceneRule {
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,联动规则合约地址,受控信任规则合约地址
     function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr) 
         external returns(bool) {
-        //参数检查
+        // 平台与设备是否注册
+        if(checker(addr4)){
+            addUserSceneRuleEvent(msg.sender, false, "添加用户场景失败,平台或设备未注册");
+            return false;
+        }
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
@@ -56,6 +64,7 @@ contract UserSceneRule {
         controlledDevice.attrNum++;
         attribute.deviceType = attrType;
         linkingNums++;
+        addUserSceneRuleEvent(msg.sender, true, "添加用户场景成功");
         return true;
     }
 
@@ -89,11 +98,6 @@ contract UserSceneRule {
         return true;
     }
 
-    /* 获取所有用户定义规则 */
-    // TODO 是否有必要?
-    function getUserSceneRule() external returns(bool){
-    }
-
     LinkageRule linkage;
     /* 执行用户场景规则 */
     // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
@@ -101,10 +105,12 @@ contract UserSceneRule {
         external returns(bool) {
         // 调用注册合约，查询受控平台和设备是否注册
         if(!checker(addr4)){
+            userSceneRuleEvent(msg.sender, false, "受控平台和设备未注册");
             return false;
         }
         // 检查用户规则
         if(!checkUserSceneRule(addr4, attrType)){
+            userSceneRuleEvent(msg.sender, false, "用户规则失败");
             return false;
         }
         // 调用联动规则合约
@@ -114,17 +120,19 @@ contract UserSceneRule {
         linkage = LinkageRule(linkingDevice.ruleAddr);
         bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr);       
         if(!result){
+            userSceneRuleEvent(msg.sender, false, "调用联动规则失败");
             return false;
         }
+        userSceneRuleEvent(msg.sender, true, "调用联动规则成功");
         return true;
     }
     
     /* 检测平台和设备注册 */
-    function checker(address[4] addr4) internal returns(bool){
-        if(Register(registerConstractAddr).checkRegister(addr4[0],1,address(0)) 
-            && Register(registerConstractAddr).checkRegister(addr4[0],2,addr4[1]) 
-            && Register(registerConstractAddr).checkRegister(addr4[2],1,address(0)) 
-            && Register(registerConstractAddr).checkRegister(addr4[2],2,addr4[3])){
+    function checker(address[4] addr4) constant internal returns(bool){
+        if(Register(registerConstractAddr).checkPlatformRegister(addr4[0]) 
+            && Register(registerConstractAddr).checkDeviceRegister(addr4[0],addr4[1]) 
+            && Register(registerConstractAddr).checkPlatformRegister(addr4[2]) 
+            && Register(registerConstractAddr).checkDeviceRegister(addr4[2],addr4[3])){
             return true;
         }
         return false;

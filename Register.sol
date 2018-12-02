@@ -33,56 +33,62 @@ contract Register {
     mapping(address => User) usersInfo;        // 注册用户列表, key: 用户地址
 
     /* 事件响应 */
-    event platformRegisterEvent(address platAddr);
-    event devicesRegisterEvent();
-    event devicesSetAttrEvent();
-    event deviceUnRegisterEvent();
-    event userRegisterEvent();
+    event platformRegisterEvent(address sender, bool result, string message);
+    event devicesRegisterEvent(address sender, bool result, string message);
+    event devicesSetAttrEvent(address sender, bool result, string message);
+    event deviceUnRegisterEvent(address sender, bool result, string message);
+    event userRegisterEvent(address sender, bool result, string message);
 
     /* 1 注册平台 */
     // 参数:平台地址,平台名称
-    function platformRegister(address platAddr) external returns(bool) {
-        if(checkRegister(platAddr, 1, address(0))){ // 若平台已注册,则退出
+    function platformRegister(address platAddr) external returns(bool){
+        if(checkPlatformRegister(platAddr)){ // 若平台已注册,则退出
+            platformRegisterEvent(msg.sender, false, "平台已注册");
             return false;
         }
         platInfo[platAddr].addr = platAddr; //平台链上地址
-        platInfo[platAddr].deviceNum = 0;       //初始化设备个数
+        platInfo[platAddr].deviceNum = 0;  //初始化设备个数
         platformNum++;
-        platformRegisterEvent(platAddr);
+        platformRegisterEvent(msg.sender, true, "注册成功");
         return true;
     }
 
     /* 2.1 设备向平台注册 */
     // 参数:平台地址,设备地址
-    function devicesRegister(address platAddr, address deviceAddr) external returns(bool) {
-        if(checkRegister(deviceAddr, 2, platAddr)){ // 若设备已注册,则退出
+    function devicesRegister(address platAddr, address deviceAddr) external returns(bool){
+        if(checkDeviceRegister(deviceAddr, platAddr)){ // 若设备已注册,则退出
+            devicesRegisterEvent(msg.sender, false, "设备已注册");
             return false;
         }
         Platform storage platform = platInfo[platAddr];          
         if (platform.addr == address(0)) {// 若当前无已注册的平台,则退出
+            devicesRegisterEvent(msg.sender, false, "当前无已注册的平台");
             return false;
         }
         Device storage device = platform.ownDevices[deviceAddr];     
         // 设置设备各属性
         platform.deviceNum++;
-        device.addr = deviceAddr;                           
+        device.addr = deviceAddr;  
+        devicesRegisterEvent(msg.sender, true, "设备注册成功");
         return true;
     }
     /* 2.2 设置设备属性 */
     // 参数:平台地址,设备地址,属性名称,属性类型,属性状态
-    function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState) external returns(bool) {
-
+    function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState) external returns(bool){
         Platform storage platform = platInfo[platAddr];              
         if (platform.addr == address(0)) {// 若当前无已注册的平台,则退出
+            devicesSetAttrEvent(msg.sender, false, "无已注册的平台");
             return false;
         }
         Device storage device = platform.ownDevices[deviceAddr]; 
         if (device.addr == address(0)) {// 若当前无已注册的设备,则退出
+            devicesSetAttrEvent(msg.sender, false, "无已注册的设备");
             return false;
         }
         // 设置设备属性        
         device.deviceAttr[attrType].attrType = attrType;
         device.deviceAttr[attrType].attrState = attrState;
+        devicesSetAttrEvent(msg.sender, true, "设备属性设置成功");
         return true;
     }
 
@@ -94,34 +100,32 @@ contract Register {
         Platform storage platform = platInfo[platAddr];         
         platform.deviceNum--;
         delete platform.ownDevices[deviceAddr];
-        //
-        return true;
+        deviceUnRegisterEvent(msg.sender, true, "设备解注册成功");
     }
 
     /* 3 用户注册 */
     function userRegister(address userAddr) external returns(bool) {
-
-        if(checkRegister(userAddr, 0, address(0))){ //用户已注册
+        if(checkUserRegister(userAddr)){ //用户已注册
+            userRegisterEvent(msg.sender, false, "用户已注册");
             return false;
         }
         User storage user = usersInfo[userAddr];
         user.addr = userAddr;
         userNum++;
+        userRegisterEvent(msg.sender, true, "用户注册成功");
         return true;
     }
     
     /* 检查注册 */
-    // 参数:检查地址,检查类型(0:用户,1:平台,2:设备),平台地址(可选,检查设备是否注册时使用)
-    function checkRegister(address addr, uint8 opCode, address platAddr) constant public returns(bool){
-
-        if(uint8(0) == opCode){
-            return usersInfo[addr].addr == addr;
-        }else if(uint8(1) == opCode){
-            return platInfo[platAddr].ownDevices[addr].addr == addr;
-        }else if(uint8(2) == opCode){
-            return platInfo[addr].addr == addr;
-        }else{
-            return false;
-        }
+    // 参数:检查地址,平台地址(可选,检查设备是否注册时使用)
+    function checkUserRegister(address addr) constant public returns(bool){
+        return usersInfo[addr].addr == addr;
     }
+    function checkDeviceRegister(address addr, address platAddr) constant public returns(bool){
+        return platInfo[platAddr].ownDevices[addr].addr == addr;
+    }
+    function checkPlatformRegister(address addr) constant public returns(bool){
+        return platInfo[addr].addr == addr;
+    }
+
 }

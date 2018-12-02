@@ -15,8 +15,10 @@ contract TrustRule {
     mapping(address => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
     int trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
 
-    /* 合约执行结果的事件通知 */
-    event TrustRuleEvent(bool result,string message);
+    /* 事件响应 */
+    event setTrustThresholdEvent(address sender, bool result, string message);
+    event setDevicesEvent(address sender, bool result, string message);
+    event TrustRuleEvent(address sender, bool result, string message);
 
     /* 构造函数 */
     function TrustRule(address consAddr) public{
@@ -28,13 +30,13 @@ contract TrustRule {
     // 参数: 信任值
     function setTrustThreshold(int value) external returns(bool){
         trustThreshold = value;
+        setTrustThresholdEvent(msg.sender,true,"信任值设置成功");
         return true;
     }
 
     /* 添加/修改/删除信任设备 */
     // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除)
     function setDevices(address deviceAddr,int trustValue,uint8 opCode) external returns(bool){
-
         Device storage device = trustDevices[deviceAddr];   
         if(uint8(0) == opCode){
             device.addr = deviceAddr;
@@ -46,18 +48,20 @@ contract TrustRule {
         }else if(uint8(2) == opCode){
             delete trustDevices[deviceAddr];
         }else{
+            setDevicesEvent(msg.sender,false,"未知操作符");
             return false; // 未知操作符
         }
+        setDevicesEvent(msg.sender,true,"操作成功");
         return true;
     }
 
     /* 信任规则函数 */
     // 参数: 平台地址, 设备地址
-    function trustRuleJudge(address platAddr, address deviceAddr) public returns(bool) {
+    function trustRuleJudge(address platAddr, address deviceAddr) constant public returns(bool) {
 
         // 调用注册合约，查询平台是否注册，设备是否在平台注册
-        if(!Register(registerConstractAddr).checkRegister(platAddr,1,address(0)) ||
-            !Register(registerConstractAddr).checkRegister(platAddr,2,deviceAddr)){
+        if(!Register(registerConstractAddr).checkPlatformRegister(platAddr) ||
+            !Register(registerConstractAddr).checkDeviceRegister(platAddr,deviceAddr)){
             return false;
         }
 
@@ -77,9 +81,9 @@ contract TrustRule {
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userRuleAddr);
             bool result = userScene.userSceneRule(addr4, attrType, attrState);
-            TrustRuleEvent(result,"调用成功");
+            TrustRuleEvent(msg.sender, result, "调用成功");
         }else{
-            TrustRuleEvent(false,"信任值不够");
+            TrustRuleEvent(msg.sender, false, "信任值不够");
         }
     }
 }
