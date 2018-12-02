@@ -1,7 +1,6 @@
 pragma solidity ^0.4.11;
 import "./LinkageRule.sol";
 import "./Register.sol";
-import "./Tools.sol";
 /* 用户场景规则合约 —— 用户通过平台定义，与用户一一对应 */
 // 用户定义
 contract UserSceneRule {
@@ -87,7 +86,7 @@ contract UserSceneRule {
             return (false,"受控平台不匹配");
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        if (bytes(attribute.deviceType).length == 0){
+        if (bytes(attribute.deviceType).length == 0 || !equals(attribute.deviceType, attrType)){
             return (false,"受控属性不存在");
         }
         return (true,"正确");
@@ -134,5 +133,17 @@ contract UserSceneRule {
             return true;
         }
         return false;
+    }
+    /* 字符串检测(如果作为library会有bug) */
+    function equals(string a,string b) constant private returns(bool){
+        if (bytes(a).length != bytes(b).length) {
+            return false;
+        }
+        for (uint i = 0; i < bytes(a).length; ++i) {
+            if (bytes(a)[i] != bytes(b)[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }

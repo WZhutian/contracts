@@ -1,6 +1,5 @@
 pragma solidity ^0.4.11;
 import "./UserSceneRule.sol";
-import "./Tools.sol";
 
 /* 信任规则合约 —— 与平台一一对应 */
 contract TrustRule {

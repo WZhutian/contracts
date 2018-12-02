@@ -1,7 +1,6 @@
 pragma solidity ^0.4.11;
 import "./TrustRule.sol";
 import "./Register.sol";
-import "./Tools.sol";
 /* 联动规则合约 */
 // 与用户场景合约流程类似， 只是平台需要有自己定义的规则  是否需要细化到属性层面
 contract LinkageRule {
@@ -95,7 +94,7 @@ contract LinkageRule {
             return (false,"受控平台不匹配");
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
-        if (bytes(attribute.deviceType).length == 0 || !Tools.equals(attribute.deviceType, attrType)){
+        if (bytes(attribute.deviceType).length == 0 || !equals(attribute.deviceType, attrType)){
             return (false,"受控属性不存在");
         }
         return (true,"正确");
@@ -177,7 +176,7 @@ contract LinkageRule {
         );
     }
 
-    /* 临时方法 */
+    /* 转换方法 */
     function bytes32ToString(bytes32 x) constant private returns (string) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
@@ -193,5 +192,17 @@ contract LinkageRule {
             bytesStringTrimmed[j] = bytesString[j];
         }
         return string(bytesStringTrimmed);
+    }
+    /* 字符串检测(如果作为library会有bug) */
+    function equals(string a,string b) constant private returns(bool){
+        if (bytes(a).length != bytes(b).length) {
+            return false;
+        }
+        for (uint i = 0; i < bytes(a).length; ++i) {
+            if (bytes(a)[i] != bytes(b)[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
