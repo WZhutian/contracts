@@ -79,32 +79,28 @@ contract LinkageRule {
 
     /* 查询联动规则是否正确 */
     // 参数: 
-    function checkLinkageRule(address[4] addr4, string attrType) constant public returns(bool){
+    function checkLinkageRule(address[4] addr4, string attrType) constant public returns(bool,string){
         LinkingDevice storage linkingDevice = linkingRules[addr4[1]];
         if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
-            // 联动设备不存在
-            return false;
+            return (false,"联动设备不存在");
         }
         if (linkingDevice.platformAddr == addr4[0]){
-            // 联动平台不匹配
-            return false;
+            return (false,"联动平台不匹配");
         }
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr == addr4[3]){
-            // 受控设备不存在
-            return false;
+            return (false,"受控设备不存在");
         }
         if (controlledDevice.platformAddr == addr4[2]){
-            // 受控平台不匹配
-            return false;
+            return (false,"受控平台不匹配");
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         if (bytes(attribute.deviceType).length == 0 || Tools.equals(attribute.deviceType, attrType)){
-            // 受控属性不存在
-            return false;
+            return (false,"受控属性不存在");
         }
-        return true;
+        return (true,"正确");
     }
+
 
     TrustRule trustRule;
     /* 执行联动规则 */
@@ -118,8 +114,11 @@ contract LinkageRule {
             return false;
         }
         // 查询联动规则是否匹配
-        if(!checkLinkageRule(addr4, attrType)){
-            linkageRuleEvent(msg.sender, false, "联动规则不匹配");
+        bool checkResult;
+        string memory checkMessage;
+        (checkResult,checkMessage) = checkLinkageRule(addr4, attrType);
+        if(!checkResult){
+            linkageRuleEvent(msg.sender, false, checkMessage);
             return false;
         }
 

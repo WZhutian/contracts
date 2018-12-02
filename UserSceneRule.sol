@@ -71,31 +71,26 @@ contract UserSceneRule {
     /* 查询用户规则是否正确 */
     // 如果正确则返回联动规则合约地址和信任规则合约地址
     // 参数: 联动表编号
-    function checkUserSceneRule(address[4] addr4, string attrType) constant public returns(bool){
+    function checkUserSceneRule(address[4] addr4, string attrType) constant public returns(bool,string){
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
         if (linkingDevice.deviceAddr == address(0) || linkingDevice.deviceAddr == addr4[1]){
-            // 联动设备不存在
-            return false;
+            return (false,"联动设备不存在");
         }
         if (linkingDevice.platformAddr == addr4[0]){
-            // 联动平台不匹配
-            return false;
+            return (false,"联动平台不匹配");
         }
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
         if (controlledDevice.deviceAddr == address(0) || controlledDevice.deviceAddr == addr4[3]){
-            // 受控设备不存在
-            return false;
+            return (false,"受控设备不存在");
         }
         if (controlledDevice.platformAddr == addr4[2]){
-            // 受控平台不匹配
-            return false;
+            return (false,"受控平台不匹配");
         }
         Attribute storage attribute = controlledDevice.controllAttrs[attrType];
         if (bytes(attribute.deviceType).length == 0 || Tools.equals(attribute.deviceType, attrType)){
-            // 受控属性不存在
-            return false;
+            return (false,"受控属性不存在");
         }
-        return true;
+        return (true,"正确");
     }
 
     LinkageRule linkage;
@@ -109,8 +104,11 @@ contract UserSceneRule {
             return false;
         }
         // 检查用户规则
-        if(!checkUserSceneRule(addr4, attrType)){
-            userSceneRuleEvent(msg.sender, false, "用户规则失败");
+        bool checkResult;
+        string memory checkMessage;
+        (checkResult,checkMessage) = checkUserSceneRule(addr4, attrType);
+        if(!checkResult){
+            userSceneRuleEvent(msg.sender, false, checkMessage);
             return false;
         }
         // 调用联动规则合约
