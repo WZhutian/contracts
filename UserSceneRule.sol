@@ -86,6 +86,10 @@ contract UserSceneRule {
         if (controlledDevice.platformAddr != addr4[2]){
             return (false,"受控平台不匹配");
         }
+        Attribute storage attribute = controlledDevice.controllAttrs[attrType];
+        if (bytes(attribute.deviceType).length == 0){
+            return (false,"受控属性不存在");
+        }
         return (true,"正确");
     }
 
