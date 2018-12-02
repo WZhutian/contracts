@@ -35,16 +35,23 @@ contract LinkageRule {
         mapping(address => ControlledDevice) controllDevices;    // 用户设置的受控设备, key：受控设备地址
     }
 
-    address usrAddr;                                             // 定义此合约的用户链上地址
+    address platAddr;                                             // 定义此合约的平台链上地址
     uint linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
     mapping(address => LinkingDevice) linkingRules;              // 联动规则表, key: 联动设备地址
     uint recordNums = 0;                                         // 联动记录总数
     mapping(uint => Record) linkingRecords;                   // 联动记录, key: 交易id
+    address registerConstractAddr;                               // 注册合约地址
 
     /* 事件响应 */
     event addLinkageRuleEvent(address sender, bool result, string message);
     event linkageRuleEvent(address sender, bool result, string message);
     
+    /* 构造函数 */
+    function LinkageRule(address consAddr) public{
+        platAddr = msg.sender;
+        registerConstractAddr = consAddr;
+    }
+
 
     /* 设置联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性
