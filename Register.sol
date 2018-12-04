@@ -129,7 +129,7 @@ contract Register {
     }
 
     //测试签名
-    function test(address a,address b,string c,string d,bytes32[] sig)public returns(address){
+    function test(address a,address b,string c,string d,bytes32[] sig) constant public returns(address){
         bytes32 params = keccak256(a,b,c,d);
         return checkSign(params,sig);
     }
