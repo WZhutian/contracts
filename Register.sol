@@ -177,9 +177,11 @@ contract Register {
         }
         //时间和nounce判断           
         if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],deviceAddr)){
-            devicesSetAttrEvent(msg.sender, false, "重复请求");
+            deviceUnRegisterEvent(msg.sender, false, "重复请求");
             return false;
         }   
+        deviceUnRegisterEvent(msg.sender, true, "通过");
+        
     }
 
     /* 签名验证 */
