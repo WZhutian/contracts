@@ -27,10 +27,18 @@ contract Register {
         //mapping(address => Platform) allowPlatforms;
     }
 
+    // 在一段时间内不能改变
+    struct Nounce {
+        address addr;                           //请求者地址
+        uint256 nounce;                          //请求者产生的随机值
+        uint256 timeStamp;                      //时间戳
+    }
+
     uint platformNum;                        // 注册平台个数
     mapping(address => Platform) platInfo;     // 注册平台列表 key: 平台地址
     uint userNum;                            // 注册用户个数
     mapping(address => User) usersInfo;        // 注册用户列表, key: 用户地址
+    mapping(address => Nounce) nounceList;       //nounce列表, key: 用户地址
 
     /* 事件响应 */
     event platformRegisterEvent(address sender, bool result, string message);
@@ -54,8 +62,19 @@ contract Register {
     }
 
     /* 2.1 设备向平台注册 */
-    // 参数:平台地址,设备地址
-    function devicesRegister(address platAddr, address deviceAddr) external returns(bool){
+    // 验证: 必须是[设备]进行签名
+    // 参数: 平台地址,设备地址,签名结果,[随机数,时间戳]
+    function devicesRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
+        //验证设备地址签名
+        if(checkSign(keccak256(platAddr,deviceAddr,nounceAndtimestamp),sig) != deviceAddr){
+            devicesRegisterEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断             
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],deviceAddr)){
+            devicesRegisterEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         if(checkDeviceRegister(platAddr, deviceAddr)){ // 若设备已注册,则退出
             devicesRegisterEvent(msg.sender, false, "设备已注册");
             return false;
@@ -73,8 +92,19 @@ contract Register {
         return true;
     }
     /* 2.2 设置设备属性 */
+    // 验证: 必须是[设备]进行签名
     // 参数:平台地址,设备地址,属性名称,属性类型,属性状态
-    function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState) external returns(bool){
+    function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
+        //验证设备地址签名
+        if(checkSign(keccak256(platAddr,deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
+            devicesSetAttrEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断             
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],deviceAddr)){
+            devicesSetAttrEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         Platform storage platform = platInfo[platAddr];              
         if (platform.addr == address(0)) {// 若当前无已注册的平台,则退出
             devicesSetAttrEvent(msg.sender, false, "无已注册的平台");
@@ -93,10 +123,20 @@ contract Register {
     }
 
     /* 2.3 设备向平台解注册 */
+    // 验证: 必须是[设备]进行签名
     // 参数: 平台地址,设备地址
-    // TODO: 1.身份认证 2.相关联的属性删除
-    function deviceUnRegister(address platAddr, address deviceAddr) external returns(bool) {
-
+    // TODO: 相关联的属性删除
+    function deviceUnRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool) {
+        //验证设备地址签名
+        if(checkSign(keccak256(platAddr,deviceAddr,nounceAndtimestamp),sig) != deviceAddr){
+            deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断           
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],deviceAddr)){
+            deviceUnRegisterEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         Platform storage platform = platInfo[platAddr];         
         platform.deviceNum--;
         delete platform.ownDevices[deviceAddr];
@@ -128,17 +168,55 @@ contract Register {
         return platInfo[addr].addr == addr;
     }
 
-    //测试签名
-    function test(address a,address b,string c,string d,bytes32[] sig,address addr) constant public returns(address,bool){
-        bytes32 params = keccak256(a,b,c,d);
-        return (checkSign(params,sig), checkSign(params,sig) == addr);
+    //新功能测试
+    function test(address platAddr, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) public returns(bool){
+        //验证设备地址签名
+        if(checkSign(keccak256(platAddr,deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
+            deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断           
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],deviceAddr)){
+            devicesSetAttrEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
     }
 
     /* 签名验证 */
-    // 参数:打包后的参数(string), 签名结果([v,r,s]), 参考地址
+    // 参数:打包后的参数(bytes32), 签名结果([v,r,s])
     function checkSign(bytes32 paramsPackaged, bytes32[] signature) constant private returns(address) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = keccak256(prefix, paramsPackaged);
         return ecrecover(prefixedHash, uint8(signature[0]), signature[1], signature[2]);
+    }
+
+    /* 时间和nounce 验证 (用于防止重放攻击)*/
+    // 设置时间戳60秒可验证,此时nounce起作用,作为60秒内防止重放攻击的第二道防线
+    // 每一个用户对应一个nounce存储,防止存储越来越大,一个nounce有效期为60秒,过期视为无nounce
+    // 参数:用户的随机nounce值,用户提供的时间戳,用户地址 (前两个参数必须经过checkSign验证)
+    function checkNounce(uint256 senderNounce, uint256 senderTimeStamp, address senderAddr) private returns(bool){
+        uint256 nowTime = now; //潜在的问题, 矿工修改服务器时间?
+        if(nowTime - senderTimeStamp > 60){ // 请求发起时间超过60秒,直接拒绝
+            return false;
+        }else{ // 请求发起时间不超过60秒,需要判断nounce
+            Nounce storage nounce = nounceList[senderAddr];
+            if(nounce.addr == address(0)){// 用户是初次发送nounce
+                // 记录下当前的nounce
+                nounce.addr = senderAddr;
+                nounce.timeStamp = senderTimeStamp;
+                nounce.nounce = senderNounce;
+                return true;
+            }else {
+                if(nounce.nounce == senderNounce){ // 匹配到nounce
+                    return false;
+                }else{ // nounce与原来的不同, 是用户新生成的
+                    // 记录下当前的nounce
+                    nounce.addr = senderAddr;
+                    nounce.timeStamp = senderTimeStamp;
+                    nounce.nounce = senderNounce;
+                    return true;
+                }
+            }
+        }
     }
 }
