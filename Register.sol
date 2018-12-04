@@ -129,9 +129,9 @@ contract Register {
     }
 
     //测试签名
-    function test(address a,address b,string c,string d,bytes32[] sig,address addr) constant public returns(bool){
+    function test(address a,address b,string c,string d,bytes32[] sig,address addr) constant public returns(bytes32,address,bool){
         bytes32 params = keccak256(a,b,c,d);
-        return checkSign(params,sig) == addr;
+        return (params, checkSign(params,sig), checkSign(params,sig) == addr);
     }
 
     /* 签名验证 */
