@@ -129,31 +129,16 @@ contract Register {
     }
 
     //测试签名
-    function test(address a,address b,string c,string d,bytes32[] sig,address addr) constant public returns(string,address,bool){
+    function test(address a,address b,string c,string d,bytes32[] sig,address addr) constant public returns(address,bool){
         bytes32 params = keccak256(a,b,c,d);
-        return (bytes32ToString(params), checkSign(params,sig), checkSign(params,sig) == addr);
+        return (checkSign(params,sig), checkSign(params,sig) == addr);
     }
 
     /* 签名验证 */
     // 参数:打包后的参数(string), 签名结果([v,r,s]), 参考地址
     function checkSign(bytes32 paramsPackaged, bytes32[] signature) constant private returns(address) {
-        return ecrecover(paramsPackaged, uint8(signature[0]), signature[1], signature[2]);
-    }
-    /* 转换方法 */
-    function bytes32ToString(bytes32 x) constant private returns (string) {
-        bytes memory bytesString = new bytes(32);
-        uint charCount = 0;
-        for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
-            if (char != 0) {
-                bytesString[charCount] = char;
-                charCount++;
-            }
-        }
-        bytes memory bytesStringTrimmed = new bytes(charCount);
-        for (j = 0; j < charCount; j++) {
-            bytesStringTrimmed[j] = bytesString[j];
-        }
-        return string(bytesStringTrimmed);
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash = keccak256(prefix, paramsPackaged);
+        return ecrecover(prefixedHash, uint8(signature[0]), signature[1], signature[2]);
     }
 }
