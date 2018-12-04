@@ -128,4 +128,16 @@ contract Register {
         return platInfo[addr].addr == addr;
     }
 
+    //测试签名
+    function test(address a,address b,string c,string d,bytes32[] sig)public returns(address){
+        bytes32 params = keccak256(a,b,c,d);
+        return checkSign(params,sig);
+    }
+
+    /* 签名验证 */
+    // 参数:打包后的参数(string), 签名结果([v,r,s]), 参考地址
+    function checkSign(bytes32 paramsPackaged, bytes32[] signature) constant private returns(address) {
+        return ecrecover(paramsPackaged, uint8(signature[0]), signature[1], signature[2]);
+    }
+
 }
