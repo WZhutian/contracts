@@ -48,6 +48,7 @@ contract Register {
 
     /* 1 注册平台 */
     // 参数:平台地址,平台名称
+    // TODO 期待后续能对平台身份进行验证
     function platformRegister(address platAddr) external returns(bool){
         if(checkPlatformRegister(platAddr)){ // 若平台已注册,则退出
             platformRegisterEvent(msg.sender, false, "平台已注册");

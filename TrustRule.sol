@@ -28,9 +28,16 @@ contract TrustRule {
     event TrustRuleEvent(address sender, bool result, string message);
 
     /* 构造函数 */
+    // TODO 向Register合约验证,平台是否注册
     function TrustRule(address consAddr) public{
         platformAddr = msg.sender;
         registerConstractAddr = consAddr;
+    }
+
+    /* 获取定义该合约的平台地址 */
+    // 用于鉴别联动控制过程中,请求确实是从本合约的startlink发起的
+    function getPlatAddr() constant external returns(address){
+        return platformAddr;
     }
     
     /* 设置信任阈值 */
@@ -116,10 +123,10 @@ contract TrustRule {
     UserSceneRule userScene;
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
     // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
-    function startLinking(address[4] addr4, string attrType, string attrState, address userRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
+    function startLinking(address[4] addr4, string attrType, string attrState, address userSceneRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external{
         //验证地址签名
-        if(checkSign(keccak256(addr4,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
+        if(checkSign(keccak256(addr4,attrType,attrState,userSceneRuleAddr,nounceAndtimestamp),sig) != addr4[1]){
             TrustRuleEvent(msg.sender, false, "未通过签名认证");
         }
         //时间和nounce判断             
@@ -131,8 +138,8 @@ contract TrustRule {
         (judgeResult,judgeMessage) = trustRuleJudgePackage(addr4[0],addr4[1]);
         if(judgeResult){// 调用信任值判断
             // 继续调用用户场景规则合约
-            userScene = UserSceneRule(userRuleAddr);
-            bool result = userScene.userSceneRule(addr4, attrType, attrState);
+            userScene = UserSceneRule(userSceneRuleAddr);
+            bool result = userScene.userSceneRule(addr4, attrType, attrState, userSceneRuleAddr, sig, nounceAndtimestamp);
             TrustRuleEvent(msg.sender, result, "调用成功");
         }else{
             TrustRuleEvent(msg.sender, false, judgeMessage);

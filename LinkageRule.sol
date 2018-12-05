@@ -121,30 +121,44 @@ contract LinkageRule {
     TrustRule trustRule;
     /* 执行联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,信任规则合约地址
-    function linkageRule(address[4] addr4, string attrType, string attrState, address trustAddr)
+    function linkageRule(address[4] addr4, string attrType, string attrState, address trustRuleAddr,address userSceneRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
-            
+        //验证地址签名
+        if(checkSign(keccak256(addr4,attrType,attrState,userSceneRuleAddr,nounceAndtimestamp),sig) != addr4[1]){
+            linkageRuleEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断             
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1], addr4[1])){
+            linkageRuleEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
+        // 检测请求来源,是从UserSceneRule发出 (仍需斟酌,验证)
+        // 1.检测发送者是否为userSceneRuleAddr
+        // 2.检测trustRule创建者的地址是否为addr4[0] 去Register注册合约进行调查(这里期待后续能够完善平台在Register合约注册时的身份认证机制)
+        // 可能的安全漏洞: 用户伪造TrustRule假合约
+        // 主要目的是为了防止用户绕过TrustRule的验证过程,直接访问联动规则合约
+        if(msg.sender != userSceneRuleAddr){
+            linkageRuleEvent(msg.sender, false, "请求来源地址错误");
+            return false;
+        }
+        if(!Register(registerConstractAddr).checkPlatformRegister(addr4[0])){
+            linkageRuleEvent(msg.sender, false, "请求来源平台未注册");
+            return false;
+        }
+
         // 调用注册合约，查询受控平台和设备是否注册
         if(!checker(addr4)){
             linkageRuleEvent(msg.sender, false, "受控平台或设备未注册");
             return false;
         }
         // 查询联动规则是否匹配
-        bool checkResult;
-        string memory checkMessage;
-        (checkResult,checkMessage) = checkLinkageRule(addr4, attrType);
-        if(!checkResult){
-            linkageRuleEvent(msg.sender, false, checkMessage);
+        if(!checker2(addr4,attrType)){
             return false;
         }
 
         // 调用受控平台信任规则,检查是否能够联动
-        trustRule = TrustRule(trustAddr);
-        bool judgeResult;
-        bytes32 judgeMessage;
-        (judgeResult,judgeMessage) = trustRule.trustRuleJudge(addr4[2],addr4[3]);
-        if(!judgeResult){
-            linkageRuleEvent(msg.sender, false, bytes32ToString(judgeMessage));
+        if(!checker3(trustRuleAddr,addr4)){
             return false;
         }
 
@@ -163,6 +177,29 @@ contract LinkageRule {
             return true;
         }
         return false;
+    }
+    /* 查询联动规则是否匹配 */
+    function checker2(address[4] addr4, string attrType) constant internal returns(bool){
+        bool checkResult;
+        string memory checkMessage;
+        (checkResult,checkMessage) = checkLinkageRule(addr4, attrType);
+        if(!checkResult){
+            linkageRuleEvent(msg.sender, false, checkMessage);
+            return false;
+        }
+        return true;
+    }
+    /* 调用受控平台信任规则,检查是否能够联动 */
+    function checker3(address trustRuleAddr,address[4] addr4) constant internal returns(bool){
+        trustRule = TrustRule(trustRuleAddr);
+        bool judgeResult;
+        bytes32 judgeMessage;
+        (judgeResult,judgeMessage) = trustRule.trustRuleJudge(addr4[2],addr4[3]);
+        if(!judgeResult){
+            linkageRuleEvent(msg.sender, false, bytes32ToString(judgeMessage));
+            return false;
+        }
+        return true;
     }
     
     /* 记录联动控制 */

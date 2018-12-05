@@ -1,5 +1,6 @@
 pragma solidity ^0.4.11;
 import "./LinkageRule.sol";
+import "./TrustRule.sol";
 import "./Register.sol";
 /* 用户场景规则合约 —— 用户通过平台定义，与用户一一对应 */
 // 用户定义
@@ -109,35 +110,49 @@ contract UserSceneRule {
         return (true,"正确");
     }
 
-    LinkageRule linkage;
     /* 执行用户场景规则 */
     // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
-    function userSceneRule(address[4] addr4, string attrType, string attrState)
+    function userSceneRule(address[4] addr4, string attrType, string attrState,address userSceneRuleAddr, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
+        //验证地址签名
+        if(checkSign(keccak256(addr4,attrType,attrState,userSceneRuleAddr,nounceAndtimestamp),sig) != addr4[1]){
+            userSceneRuleEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断             
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1], addr4[1])){
+            userSceneRuleEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
+        // 检测来源,是从TrustRule发出 (仍需斟酌,验证)
+        // 1.检测发送者是否为trustRuleAddr
+        // 2.检测trustRule创建者的地址是否为addr4[0], 去Register注册合约进行调查(这里期待后续能够完善平台在Register合约注册时的身份认证机制)
+        // 可能的安全漏洞: 用户伪造TrustRule假合约
+        // 主要目的是为了防止用户绕过TrustRule的验证过程,直接访问用户规则合约
+        if(TrustRule(msg.sender).getPlatAddr() != addr4[0]){
+            userSceneRuleEvent(msg.sender, false, "请求来源地址错误");
+            return false;
+        }
+        if(!Register(registerConstractAddr).checkPlatformRegister(addr4[0])){
+            userSceneRuleEvent(msg.sender, false, "请求来源平台未注册");
+            return false;
+        }
+        
         // 调用注册合约，查询受控平台和设备是否注册
         if(!checker(addr4)){
             userSceneRuleEvent(msg.sender, false, "受控平台和设备未注册");
             return false;
         }
         // 检查用户规则
-        bool checkResult;
-        string memory checkMessage;
-        (checkResult,checkMessage) = checkUserSceneRule(addr4, attrType);
-        if(!checkResult){
-            userSceneRuleEvent(msg.sender, false, checkMessage);
+        if(!checker2(addr4,attrType)){
             return false;
         }
+
         // 调用联动规则合约
-        LinkingDevice storage linkingDevice = userRules[addr4[1]];
-        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
-        
-        linkage = LinkageRule(linkingDevice.ruleAddr);
-        bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr);       
-        if(!result){
-            userSceneRuleEvent(msg.sender, false, "调用联动规则失败");
+        if(!doCall(addr4, attrType, attrState, userSceneRuleAddr, sig, nounceAndtimestamp)){
             return false;
         }
-        userSceneRuleEvent(msg.sender, true, "调用联动规则成功");
+
         return true;
     }
     
@@ -151,6 +166,34 @@ contract UserSceneRule {
         }
         return false;
     }
+        
+    /* 检查用户规则 */
+    function checker2(address[4] addr4,string attrType) constant internal returns(bool){
+        bool checkResult;
+        string memory checkMessage;
+        (checkResult,checkMessage) = checkUserSceneRule(addr4, attrType);
+        if(!checkResult){
+            userSceneRuleEvent(msg.sender, false, checkMessage);
+            return false;
+        }
+        return true;
+    }
+    /* 调用联动规则合约 */
+    LinkageRule linkage;
+    function doCall(address[4] addr4, string attrType, string attrState,address userSceneRuleAddr, bytes32[] sig,uint256[] nounceAndtimestamp) constant internal returns(bool){
+        LinkingDevice storage linkingDevice = userRules[addr4[1]];
+        ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
+
+        linkage = LinkageRule(linkingDevice.ruleAddr);
+        bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr, userSceneRuleAddr, sig, nounceAndtimestamp);       
+        if(!result){
+            userSceneRuleEvent(msg.sender, false, "调用联动规则失败");
+            return false;
+        }
+        userSceneRuleEvent(msg.sender, true, "调用联动规则成功");
+        return true;
+    }
+
     /* 字符串检测(如果作为library会有bug) */
     function equals(string a,string b) constant private returns(bool){
         if (bytes(a).length != bytes(b).length) {
