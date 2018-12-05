@@ -26,10 +26,17 @@ contract UserSceneRule {
     }
 
 
+    struct Nounce {
+        address addr;                           //请求者地址
+        uint256 nounce;                          //请求者产生的随机值
+        uint256 timeStamp;                      //时间戳
+    }
+
     address usrAddr;                                             // 定义此合约的用户链上地址
     uint linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
     mapping(address => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
     address registerConstractAddr;                               // 注册合约地址
+    mapping(address => Nounce) nounceList;       //nounce列表, key: 用户地址
 
     /* 事件响应 */
     event addUserSceneRuleEvent(address sender, bool result, string message);
@@ -43,8 +50,18 @@ contract UserSceneRule {
 
     /* 添加用户场景 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,联动规则合约地址,受控信任规则合约地址
-    function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr) 
+    function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool) {
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != usrAddr){
+            addUserSceneRuleEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断             
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],usrAddr)){
+            addUserSceneRuleEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         // 平台与设备是否注册
         if(!checker(addr4)){
             addUserSceneRuleEvent(msg.sender, false, "添加用户场景失败,平台或设备未注册");
@@ -145,5 +162,36 @@ contract UserSceneRule {
             }
         }
         return true;
+    }
+
+    /* 签名验证 */
+    // 参数:打包后的参数(bytes32), 签名结果([v,r,s])
+    function checkSign(bytes32 paramsPackaged, bytes32[] signature) constant private returns(address) {
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash = keccak256(prefix, paramsPackaged);
+        return ecrecover(prefixedHash, uint8(signature[0]), signature[1], signature[2]);
+    }
+
+    /* 时间和nounce 验证 (用于防止重放攻击)*/
+    // 没有使用区块时间(不稳定,可能会被矿工修改),timestamp由用户提供(用户负责)
+    // 每一个用户对应一个nounce存储,防止存储越来越大, 
+    // 用户提供的时间戳必须要大于存储的时间戳(防止旧请求重放)
+    // 参数:用户的随机nounce值,用户提供的时间戳,用户地址 (前两个参数必须经过checkSign验证)
+    function checkNounce(uint256 senderNounce, uint256 senderTimeStamp, address senderAddr) private returns(bool){
+        Nounce storage list = nounceList[senderAddr];  
+        if(list.nounce == senderNounce){ // 匹配到nounce
+            return false;
+        }else{// 未匹配到
+            // 与当前存储的进行比较, 检测timestamp是否过期,
+            if(senderTimeStamp <= list.timeStamp){ // (列表为空则默认为0)
+                return false;
+            }else{
+                // 记录下当前的nounce
+                list.addr = senderAddr;
+                list.timeStamp = senderTimeStamp;
+                list.nounce = senderNounce;
+                return true;
+            }
+        }
     }
 }

@@ -27,7 +27,6 @@ contract Register {
         //mapping(address => Platform) allowPlatforms;
     }
 
-    // 在一段时间内不能改变
     struct Nounce {
         address addr;                           //请求者地址
         uint256 nounce;                          //请求者产生的随机值
@@ -193,24 +192,23 @@ contract Register {
     }
 
     /* 时间和nounce 验证 (用于防止重放攻击)*/
-    // 没有使用区块时间(不稳定,可能会被矿工修改),timestamp由用户提供
+    // 没有使用区块时间(不稳定,可能会被矿工修改),timestamp由用户提供(用户负责)
     // 每一个用户对应一个nounce存储,防止存储越来越大, 
     // 用户提供的时间戳必须要大于存储的时间戳(防止旧请求重放)
-    // 要求用户发送的时间戳要能够同步 (用户负责)
     // 参数:用户的随机nounce值,用户提供的时间戳,用户地址 (前两个参数必须经过checkSign验证)
     function checkNounce(uint256 senderNounce, uint256 senderTimeStamp, address senderAddr) private returns(bool){
-        Nounce storage nounce = nounceList[senderAddr];
-        if(nounce.nounce == senderNounce){ // 匹配到nounce
+        Nounce storage list = nounceList[senderAddr];  
+        if(list.nounce == senderNounce){ // 匹配到nounce
             return false;
         }else{// 未匹配到
             // 与当前存储的进行比较, 检测timestamp是否过期,
-            if(senderTimeStamp<nounce.timeStamp){
+            if(senderTimeStamp <= list.timeStamp){ // (列表为空则默认为0)
                 return false;
             }else{
                 // 记录下当前的nounce
-                nounce.addr = senderAddr;
-                nounce.timeStamp = senderTimeStamp;
-                nounce.nounce = senderNounce;
+                list.addr = senderAddr;
+                list.timeStamp = senderTimeStamp;
+                list.nounce = senderNounce;
                 return true;
             }
         }
