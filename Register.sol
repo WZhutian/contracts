@@ -193,31 +193,25 @@ contract Register {
     }
 
     /* 时间和nounce 验证 (用于防止重放攻击)*/
-    // 设置时间戳60秒可验证,此时nounce起作用,作为60秒内防止重放攻击的第二道防线
-    // 每一个用户对应一个nounce存储,防止存储越来越大,一个nounce有效期为60秒,过期视为无nounce
+    // 没有使用区块时间(不稳定,可能会被矿工修改),timestamp由用户提供
+    // 每一个用户对应一个nounce存储,防止存储越来越大, 
+    // 用户提供的时间戳必须要大于存储的时间戳(防止旧请求重放)
+    // 要求用户发送的时间戳要能够同步 (用户负责)
     // 参数:用户的随机nounce值,用户提供的时间戳,用户地址 (前两个参数必须经过checkSign验证)
     function checkNounce(uint256 senderNounce, uint256 senderTimeStamp, address senderAddr) private returns(bool){
-        uint256 nowTime = now; //潜在的问题, 矿工修改服务器时间?
-        if(nowTime - senderTimeStamp > 60){ // 请求发起时间超过60秒,直接拒绝
+        Nounce storage nounce = nounceList[senderAddr];
+        if(nounce.nounce == senderNounce){ // 匹配到nounce
             return false;
-        }else{ // 请求发起时间不超过60秒,需要判断nounce
-            Nounce storage nounce = nounceList[senderAddr];
-            if(nounce.addr == address(0)){// 用户是初次发送nounce
+        }else{// 未匹配到
+            // 与当前存储的进行比较, 检测timestamp是否过期,
+            if(senderTimeStamp<nounce.timeStamp){
+                return false;
+            }else{
                 // 记录下当前的nounce
                 nounce.addr = senderAddr;
                 nounce.timeStamp = senderTimeStamp;
                 nounce.nounce = senderNounce;
                 return true;
-            }else {
-                if(nounce.nounce == senderNounce){ // 匹配到nounce
-                    return false;
-                }else{ // nounce与原来的不同, 是用户新生成的
-                    // 记录下当前的nounce
-                    nounce.addr = senderAddr;
-                    nounce.timeStamp = senderTimeStamp;
-                    nounce.nounce = senderNounce;
-                    return true;
-                }
             }
         }
     }
