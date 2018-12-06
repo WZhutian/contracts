@@ -121,7 +121,7 @@ contract LinkageRule {
     TrustRule trustRule;
     /* 执行联动规则 */
     // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,信任规则合约地址
-    function linkageRule(address[4] addr4, string attrType, string attrState, address trustRuleAddr,address userSceneRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
+    function linkageRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, address trustRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
         if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){

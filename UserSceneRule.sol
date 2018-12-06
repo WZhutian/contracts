@@ -112,7 +112,7 @@ contract UserSceneRule {
 
     /* 执行用户场景规则 */
     // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
-    function userSceneRule(address[4] addr4, string attrType, string attrState,address userSceneRuleAddr, bytes32[] sig,uint256[] nounceAndtimestamp)
+    function userSceneRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
         if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
@@ -149,7 +149,7 @@ contract UserSceneRule {
         }
 
         // 调用联动规则合约
-        if(!doCall(addr4, attrType, attrState, userSceneRuleAddr, sig, nounceAndtimestamp)){
+        if(!doCall(addr4,userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
             return false;
         }
 

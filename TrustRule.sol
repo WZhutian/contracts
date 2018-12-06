@@ -123,7 +123,7 @@ contract TrustRule {
     UserSceneRule userScene;
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
     // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
-    function startLinking(address[4] addr4, string attrType, string attrState, address userSceneRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
+    function startLinking(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
@@ -141,7 +141,7 @@ contract TrustRule {
         if(judgeResult){// 调用信任值判断
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userSceneRuleAddr);
-            bool result = userScene.userSceneRule(addr4, attrType, attrState, userSceneRuleAddr, sig, nounceAndtimestamp);
+            bool result = userScene.userSceneRule(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp);
             if(result){
                 TrustRuleEvent(msg.sender, result, "调用成功");
                 return true;
