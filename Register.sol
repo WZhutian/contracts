@@ -50,6 +50,16 @@ contract Register {
     // 参数:平台地址,平台名称
     // TODO 期待后续能对平台身份进行验证
     function platformRegister(address platAddr) external returns(bool){
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
+            platformRegisterEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断           
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],platAddr)){
+            platformRegisterEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         if(checkPlatformRegister(platAddr)){ // 若平台已注册,则退出
             platformRegisterEvent(msg.sender, false, "平台已注册");
             return false;
@@ -65,8 +75,8 @@ contract Register {
     // 验证: 必须是[设备]进行签名
     // 参数: 平台地址,设备地址,签名结果,[随机数,时间戳]
     function devicesRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
-        //验证设备地址签名
-        if(checkSign(keccak256(platAddr,deviceAddr,nounceAndtimestamp),sig) != deviceAddr){
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != deviceAddr){
             devicesRegisterEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
@@ -95,8 +105,8 @@ contract Register {
     // 验证: 必须是[设备]进行签名
     // 参数:平台地址,设备地址,属性名称,属性类型,属性状态
     function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
-        //验证设备地址签名
-        if(checkSign(keccak256(platAddr,deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != deviceAddr){
             devicesSetAttrEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
@@ -127,8 +137,8 @@ contract Register {
     // 参数: 平台地址,设备地址
     // TODO: 相关联的属性删除
     function deviceUnRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool) {
-        //验证设备地址签名
-        if(checkSign(keccak256(platAddr,deviceAddr,nounceAndtimestamp),sig) != deviceAddr){
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != deviceAddr){
             deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
@@ -145,6 +155,16 @@ contract Register {
 
     /* 3 用户注册 */
     function userRegister(address userAddr) external returns(bool) {
+        //验证地址签名
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != userAddr){
+            deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
+            return false;
+        }
+        //时间和nounce判断           
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],userAddr)){
+            deviceUnRegisterEvent(msg.sender, false, "重复请求");
+            return false;
+        }   
         if(checkUserRegister(userAddr)){ //用户已注册
             userRegisterEvent(msg.sender, false, "用户已注册");
             return false;
@@ -168,9 +188,9 @@ contract Register {
         return platInfo[addr].addr == addr;
     }
 
-    //新功能测试
+    //签名和nounce功能测试 (可以在正式版本中去掉)
     function test(address platAddr, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) public returns(bool){
-        //验证设备地址签名
+        //验证地址签名
         if(checkSign(keccak256(platAddr,deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
             deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
             return false;
@@ -181,7 +201,7 @@ contract Register {
             return false;
         }   
         deviceUnRegisterEvent(msg.sender, true, "通过");
-        
+        return true;
     }
 
     /* 签名验证 */
