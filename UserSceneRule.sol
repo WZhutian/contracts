@@ -112,7 +112,7 @@ contract UserSceneRule {
 
     /* 执行用户场景规则 */
     // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
-    function userSceneRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp)
+    function userSceneRule(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
         if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
@@ -180,12 +180,12 @@ contract UserSceneRule {
     }
     /* 调用联动规则合约 */
     LinkageRule linkage;
-    function doCall(address[4] addr4, string attrType, string attrState,address userSceneRuleAddr, bytes32[] sig,uint256[] nounceAndtimestamp) constant internal returns(bool){
+    function doCall(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp) constant internal returns(bool){
         LinkingDevice storage linkingDevice = userRules[addr4[1]];
         ControlledDevice storage controlledDevice = linkingDevice.controllDevices[addr4[3]];
 
         linkage = LinkageRule(linkingDevice.ruleAddr);
-        bool result = linkage.linkageRule(addr4, attrType, attrState, controlledDevice.trustAddr, userSceneRuleAddr, sig, nounceAndtimestamp);       
+        bool result = linkage.linkageRule(addr4, userSceneRuleAddr, attrType, attrState, controlledDevice.trustAddr, sig, nounceAndtimestamp);       
         if(!result){
             userSceneRuleEvent(msg.sender, false, "调用联动规则失败");
             return false;
