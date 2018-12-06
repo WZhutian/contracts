@@ -138,7 +138,7 @@ contract TrustRule {
         doCall(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp);
     }
     /* 调用用户场景合约 */
-    function doCall(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp)external returns(bool){
+    function doCall(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) constant internal returns(bool){
         bool judgeResult;
         string memory judgeMessage;
         (judgeResult,judgeMessage) = trustRuleJudgePackage(addr4[0],addr4[1]);
