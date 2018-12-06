@@ -50,7 +50,7 @@ contract UserSceneRule {
     }
 
     /* 添加用户场景 */
-    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,联动规则合约地址,受控信任规则合约地址
+    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,联动规则合约地址,受控信任规则合约地址,签名结果,[nounce,时间戳]
     function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool) {
         //验证地址签名
@@ -111,7 +111,7 @@ contract UserSceneRule {
     }
 
     /* 执行用户场景规则 */
-    // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态
+    // 参数: 联动平台地址, 联动设备地址, 受控平台地址, 受控设备地址, 控制属性, 控制状态,签名结果,[nounce,时间戳]
     function userSceneRule(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名

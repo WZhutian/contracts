@@ -59,8 +59,8 @@ contract LinkageRule {
     }
 
 
-    /* 设置联动规则 */
-    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性
+    /* 添加联动规则 */
+    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,签名结果,[nounce,时间戳]
     function addLinkageRule(address[4] addr4, string attrType,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool) {
         //验证地址签名
@@ -120,7 +120,7 @@ contract LinkageRule {
 
     TrustRule trustRule;
     /* 执行联动规则 */
-    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,信任规则合约地址
+    // 参数:联动平台地址,联动设备地址,受控平台地址,受控设备地址,控制属性,控制状态,信任规则合约地址,签名结果,[nounce,时间戳]
     function linkageRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, address trustRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名

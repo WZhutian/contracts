@@ -47,7 +47,7 @@ contract Register {
     event userRegisterEvent(address sender, bool result, string message);
 
     /* 1 注册平台 */
-    // 参数:平台地址,平台名称
+    // 参数:平台地址,签名结果,[nounce,时间戳]
     // TODO 期待后续能对平台身份进行验证
     function platformRegister(address platAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
@@ -73,7 +73,7 @@ contract Register {
 
     /* 2.1 设备向平台注册 */
     // 验证: 必须是[设备]进行签名
-    // 参数: 平台地址,设备地址,签名结果,[随机数,时间戳]
+    // 参数: 平台地址,设备地址,签名结果,[nounce,时间戳]
     function devicesRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != deviceAddr){
@@ -103,7 +103,7 @@ contract Register {
     }
     /* 2.2 设置设备属性 */
     // 验证: 必须是[设备]进行签名
-    // 参数:平台地址,设备地址,属性名称,属性类型,属性状态
+    // 参数:平台地址,设备地址,属性名称,属性类型,属性状态,签名结果,[nounce,时间戳]
     function devicesSetAttr(address platAddr, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != deviceAddr){
@@ -134,7 +134,7 @@ contract Register {
 
     /* 2.3 设备向平台解注册 */
     // 验证: 必须是[设备]进行签名
-    // 参数: 平台地址,设备地址
+    // 参数: 平台地址,设备地址,签名结果,[nounce,时间戳]
     // TODO: 相关联的属性删除
     function deviceUnRegister(address platAddr, address deviceAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool) {
         //验证地址签名
@@ -154,6 +154,7 @@ contract Register {
     }
 
     /* 3 用户注册 */
+    // 参数: 用户地址,签名结果,[nounce,时间戳]
     function userRegister(address userAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool) {
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != userAddr){
@@ -188,7 +189,7 @@ contract Register {
         return platInfo[addr].addr == addr;
     }
 
-    //签名和nounce功能测试 (可以在正式版本中去掉)
+    //签名和nounce功能以及重放攻击测试 (可以在正式版本中去掉) 借用了解注册的事件
     function test(address[4] addr4, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) public returns(bool){
         //验证地址签名
         if(checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){

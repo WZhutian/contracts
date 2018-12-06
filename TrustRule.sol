@@ -41,7 +41,7 @@ contract TrustRule {
     }
     
     /* 设置信任阈值 */
-    // 参数: 信任值, 签名, nounce与时间戳
+    // 参数: 信任值, 签名结果,[nounce,时间戳]
     function setTrustThreshold(int value,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
@@ -59,7 +59,7 @@ contract TrustRule {
     }
 
     /* 添加/修改/删除信任设备 */
-    // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除), 签名, nounce与时间戳
+    // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除),签名结果,[nounce,时间戳]
     function setDevices(address deviceAddr,int trustValue,uint8 opCode,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
@@ -91,7 +91,7 @@ contract TrustRule {
         return true;
     }
 
-    /* 信任规则函数 */
+    /* 信任阈值判断函数 */
     // 参数: 平台地址, 设备地址 (由于需要跨合约调用,使用bytes32)
     function trustRuleJudge(address platAddr, address deviceAddr) constant public returns(bool, bytes32) {
 
@@ -122,7 +122,7 @@ contract TrustRule {
 
     UserSceneRule userScene;
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
-    // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
+    // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],用户规则合约地址,控制属性,控制状态
     function startLinking(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool){
         //验证地址签名
