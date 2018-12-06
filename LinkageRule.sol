@@ -124,7 +124,7 @@ contract LinkageRule {
     function linkageRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, address trustRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
-        if(!checkSign(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
+        if(!checkAddr(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
             linkageRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }

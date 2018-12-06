@@ -126,7 +126,7 @@ contract TrustRule {
     function startLinking(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool){
         //验证地址签名
-        if(!checkSign(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
+        if(!checkAddr(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
             TrustRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
