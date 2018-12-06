@@ -124,7 +124,7 @@ contract LinkageRule {
     function linkageRule(address[4] addr4,address userSceneRuleAddr, string attrType, string attrState, address trustRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
-        if(checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
+        if(!checkSign(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
             linkageRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
@@ -166,6 +166,11 @@ contract LinkageRule {
         recordLink(addr4, attrType, attrState);
         linkageRuleEvent(msg.sender, true, "联动成功");
         return true;
+    }
+
+    /* 验证地址签名 */
+    function checkAddr(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp)constant internal returns(bool){
+        return checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) == addr4[1];
     }
 
     /* 检测平台和设备注册 */

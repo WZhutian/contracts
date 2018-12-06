@@ -115,7 +115,7 @@ contract UserSceneRule {
     function userSceneRule(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
-        if(checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
+        if(!checkSign(addr4, userSceneRuleAddr, attrType, attrState, sig, nounceAndtimestamp)){
             userSceneRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
@@ -155,7 +155,12 @@ contract UserSceneRule {
 
         return true;
     }
-    
+
+    /* 验证地址签名 */
+    function checkAddr(address[4] addr4, address userSceneRuleAddr, string attrType, string attrState,bytes32[] sig,uint256[] nounceAndtimestamp)constant internal returns(bool){
+        return checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) == addr4[1];
+    }
+
     /* 检测平台和设备注册 */
     function checker(address[4] addr4) constant internal returns(bool){
         if(Register(registerConstractAddr).checkPlatformRegister(addr4[0]) 
