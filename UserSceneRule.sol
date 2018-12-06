@@ -115,7 +115,7 @@ contract UserSceneRule {
     function userSceneRule(address[4] addr4, string attrType, string attrState,address userSceneRuleAddr, bytes32[] sig,uint256[] nounceAndtimestamp)
         external returns(bool) {
         //验证地址签名
-        if(checkSign(keccak256(addr4,attrType,attrState,userSceneRuleAddr,nounceAndtimestamp),sig) != addr4[1]){
+        if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
             userSceneRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }

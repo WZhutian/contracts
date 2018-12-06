@@ -124,14 +124,16 @@ contract TrustRule {
     /* 联动步骤开始 (1.调用用户场景规则 2.再嵌套调用联动规则 3.调用受控平台信任规则 4.最后写入联动记录)*/
     // 用户参数输入:[联动平台地址,联动设备地址,受控平台地址,受控设备地址],控制属性,控制状态,用户规则合约
     function startLinking(address[4] addr4, string attrType, string attrState, address userSceneRuleAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
-        external{
+        external returns(bool){
         //验证地址签名
-        if(checkSign(keccak256(addr4,attrType,attrState,userSceneRuleAddr,nounceAndtimestamp),sig) != addr4[1]){
+        if(checkSign(keccak256(addr4,userSceneRuleAddr,attrType,attrState,nounceAndtimestamp),sig) != addr4[1]){
             TrustRuleEvent(msg.sender, false, "未通过签名认证");
+            return false;
         }
         //时间和nounce判断             
         if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],addr4[1])){
             TrustRuleEvent(msg.sender, false, "重复请求");
+            return false;
         }   
         bool judgeResult;
         string memory judgeMessage;
@@ -140,9 +142,15 @@ contract TrustRule {
             // 继续调用用户场景规则合约
             userScene = UserSceneRule(userSceneRuleAddr);
             bool result = userScene.userSceneRule(addr4, attrType, attrState, userSceneRuleAddr, sig, nounceAndtimestamp);
-            TrustRuleEvent(msg.sender, result, "调用成功");
+            if(result){
+                TrustRuleEvent(msg.sender, result, "调用成功");
+                return true;
+            }else{
+                return false;
+            }
         }else{
             TrustRuleEvent(msg.sender, false, judgeMessage);
+            return false;
         }
     }
     
