@@ -49,7 +49,7 @@ contract Register {
     /* 1 注册平台 */
     // 参数:平台地址,平台名称
     // TODO 期待后续能对平台身份进行验证
-    function platformRegister(address platAddr) external returns(bool){
+    function platformRegister(address platAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
             platformRegisterEvent(msg.sender, false, "未通过签名认证");
@@ -154,15 +154,15 @@ contract Register {
     }
 
     /* 3 用户注册 */
-    function userRegister(address userAddr) external returns(bool) {
+    function userRegister(address userAddr,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool) {
         //验证地址签名
         if(checkSign(keccak256(nounceAndtimestamp),sig) != userAddr){
-            deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
+            userRegisterEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
         //时间和nounce判断           
         if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],userAddr)){
-            deviceUnRegisterEvent(msg.sender, false, "重复请求");
+            userRegisterEvent(msg.sender, false, "重复请求");
             return false;
         }   
         if(checkUserRegister(userAddr)){ //用户已注册
