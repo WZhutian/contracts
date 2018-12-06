@@ -16,7 +16,7 @@ contract TrustRule {
     }
 
     address registerConstractAddr;                 // 注册合约地址
-    address platformAddr;                          // 定义此规则的平台的地址
+    address platAddr;                          // 定义此规则的平台的地址
     uint trustDeviceNum;                           // 平台信任设备个数
     mapping(address => Device) trustDevices;       // 平台信任的的可联动设备映射表, key：设备地址
     int trustThreshold;                           // 平台信任设备的信任阈值，(当前为统一信任值, 后期优化会针对设备类型不同)
@@ -29,27 +29,27 @@ contract TrustRule {
 
     /* 构造函数 */
     // TODO 向Register合约验证,平台是否注册
-    function TrustRule(address consAddr) public{
-        platformAddr = msg.sender;
+    function TrustRule(address plat,address consAddr) public{
+        platAddr = plat;
         registerConstractAddr = consAddr;
     }
 
     /* 获取定义该合约的平台地址 */
     // 用于鉴别联动控制过程中,请求确实是从本合约的startlink发起的
     function getPlatAddr() constant external returns(address){
-        return platformAddr;
+        return platAddr;
     }
     
     /* 设置信任阈值 */
     // 参数: 信任值, 签名, nounce与时间戳
     function setTrustThreshold(int value,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
-        if(checkSign(keccak256(nounceAndtimestamp),sig) != platformAddr){
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
             setTrustThresholdEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
         //时间和nounce判断             
-        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],platformAddr)){
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],platAddr)){
             setTrustThresholdEvent(msg.sender, false, "重复请求");
             return false;
         }   
@@ -62,12 +62,12 @@ contract TrustRule {
     // 参数: 设备地址, 信任值, 操作码(0:添加,1:修改,2:删除), 签名, nounce与时间戳
     function setDevices(address deviceAddr,int trustValue,uint8 opCode,bytes32[] sig,uint256[] nounceAndtimestamp) external returns(bool){
         //验证地址签名
-        if(checkSign(keccak256(nounceAndtimestamp),sig) != platformAddr){
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != platAddr){
             setDevicesEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
         //时间和nounce判断             
-        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],platformAddr)){
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],platAddr)){
             setDevicesEvent(msg.sender, false, "重复请求");
             return false;
         }   

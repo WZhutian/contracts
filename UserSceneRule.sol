@@ -33,7 +33,7 @@ contract UserSceneRule {
         uint256 timeStamp;                      //时间戳
     }
 
-    address usrAddr;                                             // 定义此合约的用户链上地址
+    address userAddr;                                             // 定义此合约的用户链上地址
     uint linkingNums = 0;                                        // 联动规则总数(每一个属性的联动都算数)
     mapping(address => LinkingDevice) userRules;                 // 联动规则表, key: 联动设备地址
     address registerConstractAddr;                               // 注册合约地址
@@ -44,8 +44,8 @@ contract UserSceneRule {
     event userSceneRuleEvent(address sender, bool result, string message);
 
     /* 构造函数 */
-    function UserSceneRule(address consAddr) public{
-        usrAddr = msg.sender;
+    function UserSceneRule(address user,address consAddr) public{
+        userAddr = user;
         registerConstractAddr = consAddr;
     }
 
@@ -54,12 +54,12 @@ contract UserSceneRule {
     function addUserSceneRule(address[4] addr4, string attrType, address ruleAddr, address trustAddr,bytes32[] sig,uint256[] nounceAndtimestamp) 
         external returns(bool) {
         //验证地址签名
-        if(checkSign(keccak256(nounceAndtimestamp),sig) != usrAddr){
+        if(checkSign(keccak256(nounceAndtimestamp),sig) != userAddr){
             addUserSceneRuleEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
         //时间和nounce判断             
-        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],usrAddr)){
+        if(!checkNounce(nounceAndtimestamp[0],nounceAndtimestamp[1],userAddr)){
             addUserSceneRuleEvent(msg.sender, false, "重复请求");
             return false;
         }   

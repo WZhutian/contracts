@@ -53,8 +53,8 @@ contract LinkageRule {
     event linkageRuleEvent(address sender, bool result, string message);
     
     /* 构造函数 */
-    function LinkageRule(address consAddr) public{
-        platAddr = msg.sender;
+    function LinkageRule(address plat,address consAddr) public{
+        platAddr = plat;
         registerConstractAddr = consAddr;
     }
 
