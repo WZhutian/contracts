@@ -191,7 +191,7 @@ contract Register {
     //签名和nounce功能测试 (可以在正式版本中去掉)
     function test(address[4] addr4, address deviceAddr, string attrType,string attrState,bytes32[] sig,uint256[] nounceAndtimestamp) public returns(bool){
         //验证地址签名
-        if(checkSign(keccak256(addr4,deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
+        if(checkSign(keccak256(addr4[0],addr4[1],addr4[2],addr4[3],deviceAddr,attrType,attrState,nounceAndtimestamp),sig) != deviceAddr){
             deviceUnRegisterEvent(msg.sender, false, "未通过签名认证");
             return false;
         }
